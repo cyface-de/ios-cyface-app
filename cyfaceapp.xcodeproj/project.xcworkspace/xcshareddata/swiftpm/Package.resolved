@@ -1,0 +1,15 @@
+{
+  "originHash" : "a73283355e8969e3aa98a9535828fffcb0cc58774b78df6b247d2ea76d03fffc",
+  "pins" : [
+    {
+      "identity" : "ios-sensor-library",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/cyface-de/ios-sensor-library",
+      "state" : {
+        "branch" : "main",
+        "revision" : "741475c3aceafd4ab7560c8233ff3667f9304d43"
+      }
+    }
+  ],
+  "version" : 3
+}
