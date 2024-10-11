@@ -8,12 +8,10 @@ on:
 
 jobs:      
   build: 
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
-      - name: Update XCode
-        run: softwareupdate --list
       - name: Build
         run: xcodebuild -destination "platform=iOS Simulator,name=iPhone SE (3rd generation),OS=18.1" -scheme cyfaceapp build
       - name: Test
