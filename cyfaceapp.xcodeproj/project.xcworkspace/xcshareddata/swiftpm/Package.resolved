@@ -1,6 +1,15 @@
 {
-  "originHash" : "a73283355e8969e3aa98a9535828fffcb0cc58774b78df6b247d2ea76d03fffc",
+  "originHash" : "b2e9a450f0681d6f38bbd5d2aff0d4fa28e47da8b45d8ae2aea715e9ed754621",
   "pins" : [
+    {
+      "identity" : "hcaptcha-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hCaptcha/HCaptcha-ios-sdk",
+      "state" : {
+        "revision" : "a4f7bc11bf7c0e42ab83ef6c46d821abe2676c3c",
+        "version" : "2.9.0"
+      }
+    },
     {
       "identity" : "ios-sensor-library",
       "kind" : "remoteSourceControl",
@@ -8,6 +17,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "741475c3aceafd4ab7560c8233ff3667f9304d43"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveX/RxSwift",
+      "state" : {
+        "revision" : "c7c7d2cf50a3211fe2843f76869c698e4e417930",
+        "version" : "6.8.0"
       }
     }
   ],

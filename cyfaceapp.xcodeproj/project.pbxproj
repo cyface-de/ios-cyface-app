@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA0F18512CB81F230070045B /* DataCapturing in Frameworks */ = {isa = PBXBuildFile; productRef = AA0F18502CB81F230070045B /* DataCapturing */; };
+		AA0F18A62CBD29770070045B /* HCaptcha in Frameworks */ = {isa = PBXBuildFile; productRef = AA0F18A52CBD29770070045B /* HCaptcha */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA0F18A62CBD29770070045B /* HCaptcha in Frameworks */,
 				AA0F18512CB81F230070045B /* DataCapturing in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +120,7 @@
 			name = cyfaceapp;
 			packageProductDependencies = (
 				AA0F18502CB81F230070045B /* DataCapturing */,
+				AA0F18A52CBD29770070045B /* HCaptcha */,
 			);
 			productName = cyfaceapp;
 			productReference = AA0F18222CB81EBA0070045B /* cyfaceapp.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AA0F184F2CB81F230070045B /* XCRemoteSwiftPackageReference "ios-sensor-library" */,
+				AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0F18232CB81EBA0070045B /* Products */;
@@ -585,6 +589,14 @@
 				kind = branch;
 			};
 		};
+		AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hCaptcha/HCaptcha-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -592,6 +604,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA0F184F2CB81F230070045B /* XCRemoteSwiftPackageReference "ios-sensor-library" */;
 			productName = DataCapturing;
+		};
+		AA0F18A52CBD29770070045B /* HCaptcha */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */;
+			productName = HCaptcha;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
