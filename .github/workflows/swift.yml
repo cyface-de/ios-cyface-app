@@ -1,11 +1,10 @@
 name: Deploy App
 
-on: [push, pull_request]
-  #push: 
-  #  branches: [ "main" ]
-  #pull_request:
-  #  branches: [ "main" ]
-  #workflow_dispatch:
+on:
+  push: 
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:      
   build_with_signing: 
