@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for iOS.
  *
@@ -24,22 +24,25 @@ import DataCapturing
  The view displayed to the user to login to a Cyface Server
 
  - author: Klemens Muthmann
- - version: 1.0.0
  */
-struct LoginView: View {
+struct AuthenticationView {
     /// The current application state.
-    @EnvironmentObject var appState: ApplicationState
+    //@EnvironmentObject var appState: ApplicationState
     /// The view model used by this view.
-    @StateObject private var credentials: LoginViewModel
+    //@StateObject private var credentials: LoginViewModel
     /// If `true` the view shows an error message.
-    @State private var showError: Bool
+    //@State private var showError: Bool
     /// The error message to show if `showError` is `true`.
-    @State private var errorMessage: String?
+    //@State private var errorMessage: String?
+    let authenticator: Authenticator
+    @Bindable var viewModel: InitialViewModel
+
+    @Environment(\.dismiss) var dismiss
 
     /**
      Initialize the view from the system settings.
      */
-    init(settings: Settings, showError: Bool = false, errorMessage: String? = nil) {
+    /*init(settings: Settings, showError: Bool = false, errorMessage: String? = nil) {
         // According to a talk from WWDC 21 this is considered valid, even though the documentation says otherwise.
         // See: https://swiftui-lab.com/random-lessons/#data-10
         self._credentials = StateObject(wrappedValue: LoginViewModel(settings: settings))
@@ -119,10 +122,40 @@ struct LoginView: View {
             })
             .tint(Color("Cyface-Green"))
         }
+    }*/
+    class Coordinator: LoginViewControllerDelegate {
+        let viewModel: InitialViewModel
+
+        init(initialViewModel viewModel: InitialViewModel) {
+            self.viewModel = viewModel
+        }
+
+        func onLoggedIn() {
+            viewModel.isAuthenticated = true
+        }
+
+        func onError(error: any Error) {
+            viewModel.error = error
+        }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
+extension AuthenticationView: UIViewControllerRepresentable {
+    // MARK: - Methods
+    func makeUIViewController(context: Context) -> some LoginViewController {
+        LoginViewController(authenticator: authenticator, delegate: context.coordinator)
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+        // Nothing to do here, but required by the `UIViewControllerRepresentable` Protocol
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(initialViewModel: viewModel)
+    }
+}
+
+/*struct ContentView_Previews: PreviewProvider {
     private static var settings: Settings {
         let ret = PreviewSettings()
         ret.authenticatedServerUrl = nil
@@ -151,4 +184,10 @@ struct ContentView_Previews: PreviewProvider {
             }
         }
     }
+}*/
+
+#Preview {
+    AuthenticationView(
+        authenticator: MockAuthenticator(), viewModel: InitialViewModel()
+    )
 }

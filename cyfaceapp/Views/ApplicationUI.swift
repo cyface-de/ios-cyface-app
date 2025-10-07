@@ -56,7 +56,7 @@ struct ApplicationUI: View {
                     ServerURLInputView(initialURL: appState.settings.serverUrl ?? "")
                 // Enable login
                 } else {
-                    LoginView(settings: appState.settings)
+                    //LoginView(settings: appState.settings)
                 }
             } else {
                 SplashScreen()

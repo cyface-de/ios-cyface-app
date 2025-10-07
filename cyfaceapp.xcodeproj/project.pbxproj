@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA0F18512CB81F230070045B /* DataCapturing in Frameworks */ = {isa = PBXBuildFile; productRef = AA0F18502CB81F230070045B /* DataCapturing */; };
-		AA0F18A62CBD29770070045B /* HCaptcha in Frameworks */ = {isa = PBXBuildFile; productRef = AA0F18A52CBD29770070045B /* HCaptcha */; };
+		AAB736102E9553CE0056FAFD /* DataCapturing in Frameworks */ = {isa = PBXBuildFile; productRef = AAB7360F2E9553CE0056FAFD /* DataCapturing */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,9 +33,22 @@
 		AA0F183C2CB81EBF0070045B /* cyfaceappUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cyfaceappUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AAB736182E955D450056FAFD /* Exceptions for "cyfaceapp" folder in "cyfaceapp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AA0F18212CB81EBA0070045B /* cyfaceapp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AA0F18242CB81EBA0070045B /* cyfaceapp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AAB736182E955D450056FAFD /* Exceptions for "cyfaceapp" folder in "cyfaceapp" target */,
+			);
 			path = cyfaceapp;
 			sourceTree = "<group>";
 		};
@@ -57,8 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA0F18A62CBD29770070045B /* HCaptcha in Frameworks */,
-				AA0F18512CB81F230070045B /* DataCapturing in Frameworks */,
+				AAB736102E9553CE0056FAFD /* DataCapturing in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,8 +130,7 @@
 			);
 			name = cyfaceapp;
 			packageProductDependencies = (
-				AA0F18502CB81F230070045B /* DataCapturing */,
-				AA0F18A52CBD29770070045B /* HCaptcha */,
+				AAB7360F2E9553CE0056FAFD /* DataCapturing */,
 			);
 			productName = cyfaceapp;
 			productReference = AA0F18222CB81EBA0070045B /* cyfaceapp.app */;
@@ -205,8 +215,7 @@
 			mainGroup = AA0F18192CB81EBA0070045B;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				AA0F184F2CB81F230070045B /* XCRemoteSwiftPackageReference "ios-sensor-library" */,
-				AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */,
+				AAB7360E2E9553CE0056FAFD /* XCRemoteSwiftPackageReference "ios-sensor-library" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0F18232CB81EBA0070045B /* Products */;
@@ -408,14 +417,15 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"cyfaceapp/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 45GZ5C9N64;
+				DEVELOPMENT_TEAM = 45GZ5C9N64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = cyfaceapp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cyface;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,7 +439,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = de.cyface.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Cyface App - App Store Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -447,14 +456,15 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"cyfaceapp/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 45GZ5C9N64;
+				DEVELOPMENT_TEAM = 45GZ5C9N64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = cyfaceapp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Cyface;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -468,7 +478,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = de.cyface.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Cyface App - App Store Profile";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -593,34 +602,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AA0F184F2CB81F230070045B /* XCRemoteSwiftPackageReference "ios-sensor-library" */ = {
+		AAB7360E2E9553CE0056FAFD /* XCRemoteSwiftPackageReference "ios-sensor-library" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/cyface-de/ios-sensor-library";
 			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/hCaptcha/HCaptcha-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.9.0;
+				kind = exactVersion;
+				version = 14.1.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		AA0F18502CB81F230070045B /* DataCapturing */ = {
+		AAB7360F2E9553CE0056FAFD /* DataCapturing */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA0F184F2CB81F230070045B /* XCRemoteSwiftPackageReference "ios-sensor-library" */;
+			package = AAB7360E2E9553CE0056FAFD /* XCRemoteSwiftPackageReference "ios-sensor-library" */;
 			productName = DataCapturing;
-		};
-		AA0F18A52CBD29770070045B /* HCaptcha */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA0F18A42CBD29770070045B /* XCRemoteSwiftPackageReference "HCaptcha-ios-sdk" */;
-			productName = HCaptcha;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

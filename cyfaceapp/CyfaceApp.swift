@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for iOS.
  *
@@ -31,17 +31,12 @@ import CoreMotion
 /// That view is a kind of meta view, which decides, depending on the current `appState`, which view to show initially.
 ///
 /// - author: Klemens Muthmann
-/// - version: 1.0.0
-/// - since: 4.0.0
 struct CyfaceApp: App {
-
-    /// The central application state which contains all values not specific to one view.
-    @StateObject var appState = ApplicationState(settings: PropertySettings())
-
     /// Display the initial user interface
     var body: some Scene {
         WindowGroup {
-            ApplicationUI(appState: appState).environmentObject(appState).tint(Color("Cyface-Green"))
+            InitialView()
+                .tint(Color("Cyface-Green"))
         }
     }
 }
