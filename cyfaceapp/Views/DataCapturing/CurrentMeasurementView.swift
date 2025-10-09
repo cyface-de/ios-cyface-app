@@ -18,22 +18,20 @@
  */
 
 import SwiftUI
+import Playgrounds
 
 /// A view showing information about the currently captured measurement.
 ///
 /// It shows details about the GPS fix, duration of the measurement, current location, speed and distance traveled.
 ///
-/// - author: Klemens Muthmann
-/// - version: 1.0.0
-/// - since: 4.0.0
 struct CurrentMeasurementView: View {
     /// The view model used to hold the state of the currently captured measurement.
-    @StateObject var viewModel: CurrentMeasurementViewModel
+    @State var viewModel: CurrentMeasurementViewModel
 
     /// Create a new view for the current measurement, with an initial view model.
-    init(viewModel: CurrentMeasurementViewModel) {
+    /*init(viewModel: CurrentMeasurementViewModel) {
         self._viewModel = StateObject(wrappedValue: viewModel)
-    }
+    }*/
 
     var body: some View {
         HStack {
@@ -46,7 +44,6 @@ struct CurrentMeasurementView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 20.0)
-
                 }
                 Spacer()
                 HStack {
@@ -91,17 +88,19 @@ struct CurrentMeasurementView: View {
                 }
             }
         }
-        .alert("Error", isPresented: $viewModel.hasError, actions: {
+        /*.alert("Error", isPresented: $viewModel.hasError, actions: {
             // actions
         }, message: {
             Text(viewModel.errorMessage ?? "")
-        })
+        })*/
     }
 }
 
-struct CurrentMeasurementView_Previews: PreviewProvider {
-
-    static var appState: ApplicationState {
+#Preview {
+    CurrentMeasurementView(
+        viewModel: CurrentMeasurementViewModelImpl()
+    )
+    /*static var appState: ApplicationState {
         let ret = ApplicationState(settings: PreviewSettings())
         //ret.duration = 200
 
@@ -129,5 +128,5 @@ struct CurrentMeasurementView_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
 
         CurrentMeasurementView(viewModel: errorModel)
-    }
+    }*/
 }

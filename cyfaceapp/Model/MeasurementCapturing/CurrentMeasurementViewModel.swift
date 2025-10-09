@@ -1,60 +1,64 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2025 Cyface GmbH
  *
- * This file is part of the Cyface SDK for iOS.
+ * This file is part of the Cyface iOS App.
  *
- * The Cyface SDK for iOS is free software: you can redistribute it and/or modify
+ * The Cyface iOS App is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * The Cyface SDK for iOS is distributed in the hope that it will be useful,
+ * The Cyface iOS App is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with the Cyface SDK for iOS. If not, see <http://www.gnu.org/licenses/>.
+ * along with the Cyface iOS App. If not, see <http://www.gnu.org/licenses/>.
  */
 
 import Foundation
 import DataCapturing
-import UIKit
+import UIKit // Required for UIImage
+
+protocol CurrentMeasurementViewModel {
+    var hasFix: UIImage { get set }
+    var distance: String { get set }
+    var speed: String { get set }
+    var duration: String { get set }
+    var latitude: String { get set }
+    var longitude: String { get set }
+    var error: Error? { get set }
+}
 
 /**
  The view model for displaying detail information about the currently captured measurement.
 
  The measurement is loaded from the Cyface backend and used to refresh the attributes necessary to show all the relevant information.
  All the attributes are formatted properly.
-
- - author: Klemens Muthmann
- - version: 1.0.0
- - since: 4.0.0
  */
-class CurrentMeasurementViewModel: ObservableObject {
+@Observable class CurrentMeasurementViewModelImpl: CurrentMeasurementViewModel {
     /// The GPS status image presented to the user. This changes based on whether the App has a GPS fix or not.
-    @Published var hasFix: UIImage
+    var hasFix: UIImage
     /// The currently driven distance under the current measurement.
-    @Published var distance: String
+    var distance: String
     /// The current speed as reported by the Cyface data capturing service.
-    @Published var speed: String
+    var speed: String
     /// The duration of the measurement.
-    @Published var duration: String
+    var duration: String
     /// The geographical latitude in degrees as a decimal number (not sexagesimal).
-    @Published var latitude: String
+    var latitude: String
     /// The geographical longitude in degress as a decimal number (not sexagesimal).
-    @Published var longitude: String
-    /// A flag that is `true` if there was an error, or `false` otherwise.
-    @Published var hasError: Bool = false
-    /// The error message to show, if any.
-    @Published var errorMessage: String?
+    var longitude: String
+    /// The last error, that occured during capturing the current measurement.
+    var error: (any Error)? = nil
     /// The CoreData stack used to access the database and load information about the current measurement.
     // TODO: private let coreDateStack: CoreDataManager
     /// The device wide unique identifier of the currently captured measurement.
     // TODO: private let measurementIdentifier: Int64?
 
     /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
-    init(appState: ApplicationState, distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
+    init(/*appState: ApplicationState, */distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
         self.hasFix = UIImage(named: "gps-not-available")!
         self.distance = distance
         self.speed = speed
@@ -65,6 +69,8 @@ class CurrentMeasurementViewModel: ObservableObject {
         // TODO: self.measurementIdentifier = appState.dcs.currentMeasurement
         // TODO: appState.dcs.handler.append(self.handle)
     }
+
+    
 
 }
 

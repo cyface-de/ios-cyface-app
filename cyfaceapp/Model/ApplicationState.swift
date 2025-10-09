@@ -44,19 +44,17 @@ class ApplicationState: ObservableObject {
     /// The synchronizer to transmit data to a Cyface data collection server.
     // TODO: var synchronizer: Synchronizer?
     /// This is `true` if the most recent privacy policy has been accepted by the user or `false` otherwise. Depending on the value of this flag, the application either shows the privacy policy screen or not.
-    @Published var hasAcceptedCurrentPrivacyPolicy: Bool
+    //@Published var hasAcceptedCurrentPrivacyPolicy: Bool
     /// This is `true` if the user has been logged in or `false` otherwise. Depending on the state of this flag the app either shows a login screen or the main screen.
-    @Published var isLoggedIn: Bool
-    /// Is there currently a valid Cyface server set in the application settings. If not this can be used to force the user to enter one such URL.
-    @Published var hasValidServerURL: Bool
+    @Published var isLoggedIn: Bool = true
     /// Is the application properly initialized? This information is used to show a splash screen on startup, which disappears after initialization has finished. Initialization at the moment is the setup of the CoreDataStack, which can include data migration from previous database versions.
-    @Published var isInitialized: Bool
+    @Published var isInitialized: Bool = true
     /// This is `true` if data capturing is active and `false` otherwise. Depending on this value, buttons are without function and the UI for the current measurement is shown.
     @Published var isCurrentlyCapturing: Bool = false
     /// Used to decide on whether to show the pause UI elements or not. This usually means that the capturing bar is displayed, but the pause button is disabled while the play and the stop button are enabled.
     @Published var isPaused: Bool = false
     /// The list of measurements currently shown via the user interface.
-    @Published var measurements = [MeasurementViewModel]()
+    @Published var measurements = [MeasurementListEntryViewModel]()
     /// `true` if the UI is supposed to display an error message; `false` otherwise.
     @Published var hasError = false
     /// The error message to show if `hasError` is `true`.
@@ -65,18 +63,12 @@ class ApplicationState: ObservableObject {
     // MARK: - Initializers
     /// Create a new `ApplicationState` from the system settings of this application.
     init(settings: Settings) {
-        self.hasAcceptedCurrentPrivacyPolicy = settings.highestAcceptedPrivacyPolicy >= PrivacyPolicy.currentPrivacyPolicyVersion
+        //self.hasAcceptedCurrentPrivacyPolicy = settings.highestAcceptedPrivacyPolicy >= PrivacyPolicy.currentPrivacyPolicyVersion
 
-        let hasValidServerURL = ApplicationState.hasValidServerURL(settings: settings)
-        self.hasValidServerURL = hasValidServerURL
         self.settings = settings
         self.isInitialized = false
 
         do {
-            let authenticatedServerURL = settings.authenticatedServerUrl
-            let serverURL = settings.serverUrl
-            let serverURLMatchesAuthenticatedURL = authenticatedServerURL == serverURL
-            self.isLoggedIn = hasValidServerURL && serverURLMatchesAuthenticatedURL
 
             // TODO: let coreDataStack = try CoreDataManager()
             let bundle = Bundle(url: Bundle.main.bundleURL.appendingPathComponent("DataCapturing_DataCapturing.bundle"))!
@@ -103,8 +95,8 @@ class ApplicationState: ObservableObject {
     // MARK: - Methods
     /// Called if the user accepts the privacy policy.
     func acceptPrivacyPolicy() {
-        settings.highestAcceptedPrivacyPolicy = PrivacyPolicy.currentPrivacyPolicyVersion
-        hasAcceptedCurrentPrivacyPolicy = true
+        //settings.highestAcceptedPrivacyPolicy = PrivacyPolicy.currentPrivacyPolicyVersion
+        //hasAcceptedCurrentPrivacyPolicy = true
     }
 
     /**
@@ -177,40 +169,6 @@ class ApplicationState: ObservableObject {
             try persistenceLayer.delete(measurement: measurements[offset].id)
             measurements.remove(at: offset)
         }*/
-    }
-
-    // MARK: - Private Methods
-    /// Checks if the settings contain a valid Cyface server URL at the moment.
-    ///
-    /// - Parameter settings: The App settings containing the server URL
-    /// - Returns: `true` if a valid server URL has been provided by the user via the applications system settings.
-    private static func hasValidServerURL(settings: Settings) -> Bool {
-        if let unwrappedURL = settings.serverUrl {
-            if NSPredicate(format: "SELF MATCHES %@", urlRegEx).evaluate(with: unwrappedURL) {
-                if URL(string: unwrappedURL) != nil {
-                    return true
-                } else {
-                    return false
-                }
-            }
-        }
-        return false
-    }
-}
-
-extension ApplicationState: ServerUrlChangedListener {
-    func to(validURL: URL) {
-        self.isLoggedIn = false
-        self.hasValidServerURL = true
-
-        // TODO: synchronizer?.deactivate()
-    }
-
-    func to(invalidURL: String?) {
-        self.isLoggedIn = false
-        self.hasValidServerURL = false
-
-        // TODO: synchronizer?.deactivate()
     }
 }
 

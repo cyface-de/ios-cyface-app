@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 Cyface GmbH
+ * Copyright 2022-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for iOS.
  *
@@ -20,11 +20,7 @@
 /// The MVVM view model for a single list entry in the list of measurements.
 ///
 /// It contains the information shown on screen as well as the current synchronization state, to show appropriate icons.
-///
-/// - author: Klemens Muthmann
-/// - version: 1.0.0
-/// - since: 4.0.0
-struct MeasurementViewModel: Identifiable {
+struct MeasurementListEntryViewModel: Identifiable {
     /// Flag which is `true` if the data synchroniation has failed and `false` otherwise. If it is true the Ui displays an exclamation mark icon and maybe some information about the error.
     var synchronizationFailed = false
     /// Flag which is `true` if the app is currently synchronizing data and `false` otherwise. This is used to show an acitivity or progress indicator during the upload process.
