@@ -37,7 +37,7 @@ protocol CurrentMeasurementViewModel {
  The measurement is loaded from the Cyface backend and used to refresh the attributes necessary to show all the relevant information.
  All the attributes are formatted properly.
  */
-@Observable class CurrentMeasurementViewModelImpl: CurrentMeasurementViewModel {
+@Observable class ProductionCurrentMeasurementViewModel: CurrentMeasurementViewModel {
     /// The GPS status image presented to the user. This changes based on whether the App has a GPS fix or not.
     var hasFix: UIImage
     /// The currently driven distance under the current measurement.
@@ -58,8 +58,8 @@ protocol CurrentMeasurementViewModel {
     // TODO: private let measurementIdentifier: Int64?
 
     /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
-    init(/*appState: ApplicationState, */distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
-        self.hasFix = UIImage(named: "gps-not-available")!
+    init(measurement: DataCapturing.Measurement, distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
+        self.hasFix = UIImage(systemName: "mappin.slash")!
         self.distance = distance
         self.speed = speed
         self.duration = duration

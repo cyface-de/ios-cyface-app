@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2025 Cyface GmbH
  *
  * This file is part of the Cyface SDK for iOS.
  *
@@ -98,7 +98,7 @@ struct CurrentMeasurementView: View {
 
 #Preview {
     CurrentMeasurementView(
-        viewModel: CurrentMeasurementViewModelImpl()
+        viewModel: MockCurrentMeasurementViewModel()
     )
     /*static var appState: ApplicationState {
         let ret = ApplicationState(settings: PreviewSettings())

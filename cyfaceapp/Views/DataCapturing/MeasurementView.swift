@@ -29,7 +29,7 @@ struct MeasurementView: View {
     /// The authenticator used to login the user. This should contain the currently valid user to login and upload data.
     // TODO: var authenticator: CredentialsAuthenticator?
     /// The modality selected to capture data.
-    //@State var selectedModality = Modalities.defaultSelection
+    @State var selectedModality = Modalities.defaultSelection
     /// If `true` an error message is shown to the user.
     //@State var showError = false
     /// The error message to show if `showError` is true.
@@ -50,22 +50,16 @@ struct MeasurementView: View {
                 .onDelete(perform: deleteMeasurements)*/
             }
 
-         /*   if appState.isCurrentlyCapturing || appState.isPaused {
-                CurrentMeasurementView(viewModel: CurrentMeasurementViewModel(appState: appState))
+         if viewModel.isCurrentlyCapturing || viewModel.isPaused {
+             CurrentMeasurementView(viewModel: viewModel.currentMeasurementViewModel())
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ModalitySelectorView(selectedModality: $selectedModality)*/
+            ModalitySelectorView(selectedModality: $selectedModality)
 
             HStack {
                 Button(action: {
                     viewModel.start()
-                    /* TODO: do {
-                        try appState.dcs.start(inMode: selectedModality.dbValue)
-                    } catch {
-                        errorMessage = error.localizedDescription
-                        showError = true
-                    }*/
                 }) {
                     Image(systemName: "play.fill")
                         .renderingMode(.original)
@@ -78,12 +72,6 @@ struct MeasurementView: View {
 
                 Button(action: {
                     viewModel.pause()
-                    /* TODO: do {
-                        try appState.dcs.pause()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                        showError = true
-                    }*/
                 }) {
                     Image(systemName: "pause.fill")
                         .renderingMode(.original)
@@ -96,12 +84,6 @@ struct MeasurementView: View {
 
                 Button(action: {
                     viewModel.stop()
-                    /* TODO: do {
-                        try appState.dcs.stop()
-                    } catch {
-                        errorMessage = error.localizedDescription
-                        showError = true
-                    }*/
                 }) {
                     Image(systemName: "stop.fill")
                         .renderingMode(.original)

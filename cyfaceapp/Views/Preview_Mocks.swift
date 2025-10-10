@@ -6,6 +6,7 @@
 //
 import Foundation
 import DataCapturing
+import UIKit
 
 /**
  An authenticator that does not communicate with any server and only provides a fake authentication token.
@@ -32,4 +33,22 @@ class MockAuthenticator: Authenticator {
     func callback(url: URL) {
         print("Called back")
     }
+}
+
+@Observable class MockCurrentMeasurementViewModel: CurrentMeasurementViewModel {
+    var hasFix: UIImage = UIImage(systemName: "mappin.slash")!
+
+    var distance: String = "0 km"
+
+    var speed: String = "0 km/s"
+
+    var duration: String = "0:00:00"
+
+    var latitude: String = "0.0"
+
+    var longitude: String = "0.0"
+
+    var error: (any Error)? = nil
+
+
 }
