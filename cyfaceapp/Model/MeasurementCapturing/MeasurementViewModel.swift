@@ -23,7 +23,8 @@ protocol MeasurementViewModel {
     // MARK: - Properties
     var isCurrentlyCapturing: Bool { get }
     var isPaused: Bool { get }
-    var error: Error? { get }
+    var showError: Bool { get set }
+    var error: Swift.Error? { get }
 
     // MARK: - Methods
     func start()
@@ -38,9 +39,10 @@ protocol MeasurementViewModel {
 @Observable class ProductionMeasurementViewModel {
     // TODO: Initialise correctly if measurement has been running in the background
     // MARK: - Properties
-    var isCurrentlyCapturing: Bool = false
-    var isPaused: Bool = false
-    var error: (any Error)? = nil
+    var isCurrentlyCapturing = false
+    var isPaused = false
+    var showError = false
+    var error: Swift.Error? = nil
 
     private var currentMeasurement: DataCapturing.Measurement?
     private var sensorCapturer = SmartphoneSensorCapturer()
@@ -67,6 +69,7 @@ extension ProductionMeasurementViewModel: MeasurementViewModel {
             isPaused = false
         } catch {
             self.error = error
+            self.showError = true
         }
     }
     
@@ -76,6 +79,7 @@ extension ProductionMeasurementViewModel: MeasurementViewModel {
             try currentMeasurement?.pause()
         } catch {
             self.error = error
+            self.showError = true
         }
 
         isCurrentlyCapturing = false
@@ -88,6 +92,7 @@ extension ProductionMeasurementViewModel: MeasurementViewModel {
             try currentMeasurement?.stop()
         } catch {
             self.error = error
+            self.showError = true
         }
         isCurrentlyCapturing = false
         isPaused = false
@@ -97,7 +102,7 @@ extension ProductionMeasurementViewModel: MeasurementViewModel {
         if let currentMeasurement = self.currentMeasurement {
             return ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
         } else {
-            fatalError("Called with no measurement arround!")
+            fatalError("No current measurement!")
         }
     }
 }

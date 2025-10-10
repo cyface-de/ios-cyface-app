@@ -51,9 +51,15 @@ struct InitialView: View {
                     })
             }
         }
+        .alert("Error", isPresented: $viewModel.showError, actions: {
+            // actions
+        }, message: {
+            Text(viewModel.error?.localizedDescription ?? "")
+        })
     }
 }
 
 #Preview {
     InitialView()
+        .tint(Color("Cyface-Green"))
 }

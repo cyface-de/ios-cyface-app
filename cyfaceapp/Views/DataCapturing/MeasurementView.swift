@@ -31,7 +31,7 @@ struct MeasurementView: View {
     /// The modality selected to capture data.
     @State var selectedModality = Modalities.defaultSelection
     /// If `true` an error message is shown to the user.
-    //@State var showError = false
+    @State var showError = true
     /// The error message to show if `showError` is true.
     //@State var errorMessage = ""
     /// If `true` the currently displayed error is dismissed.
@@ -120,25 +120,14 @@ struct MeasurementView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-/*            .alert("Error", isPresented: $showError, actions: {
+            .alert("Error", isPresented: $viewModel.showError, actions: {
                 // actions
             }, message: {
-                Text(errorMessage)
+                Text(viewModel.error?.localizedDescription ?? "")
             })
-            .alert("Error", isPresented: $appState.hasError, actions: {
-                // actions
-                Button("OK") {
-                    if dismiss {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-            }, message: {
-                Text(appState.errorMessage)
-            })*/
             .onAppear() {
                 // TODO: appState.startSynchronization(authenticator: self.authenticator)
             }
-            .tint(Color("Cyface-Green"))
     }
 
     /// Handles calling delete on one or more measurements.
@@ -152,58 +141,15 @@ struct MeasurementView: View {
     }*/
 }
 
-#Preview {
-    MeasurementView(viewModel: ProductionMeasurementViewModel())
+#Preview("Default View") {
+    MeasurementView(viewModel: MockMeasurementViewModel())
+        .tint(Color("Cyface-Green"))
 }
 
-/*struct MeasurementView_Previews: PreviewProvider {
-    static var applicationState: ApplicationState {
-        let ret = ApplicationState(settings: PreviewSettings())
-        ret.isCurrentlyCapturing = true
-        ret.measurements = [MeasurementViewModel(distance: 5.0, id: 1), MeasurementViewModel(distance: 6.0, id: 2), MeasurementViewModel(synchronizationFailed: true, distance: 10.0, id: 4)]
-
-        return ret
-    }
-
-    static var previews: some View {
-        Group {
-            NavigationView {
-                MeasurementView(/* TODO: authenticator: MockAuthenticator(username: "test", password: "test", authenticationEndpoint: URL(string: "http://localhost:8080/api/v3/")!)*/)
-                    .previewDevice("iPhone 12")
-                    .environmentObject(applicationState)
-            }
-
-            NavigationView {
-                MeasurementView(/* TODO: authenticator: MockAuthenticator(username: "test", password: "test", authenticationEndpoint: URL(string: "http://localhost:8080/api/v3/")!)*/)
-                    .previewDevice("iPod touch (7th generation)")
-                    .environmentObject(applicationState)
-            }
-
-            NavigationView {
-                MeasurementView(/* TODO: authenticator: MockAuthenticator(username: "test", password: "test", authenticationEndpoint: URL(string: "http://localhost:8080/api/v3/")!)*/)
-                    .preferredColorScheme(.dark)
-                    .environmentObject(applicationState)
-            }
-        }
-    }
-}*/
-
-//#if DEBUG
-/* TODO: class MockAuthenticator: CredentialsAuthenticator {
-    var username: String?
-
-    var password: String?
-
-    var authenticationEndpoint: URL
-
-    init(username: String, password: String, authenticationEndpoint: URL) {
-        self.username = username
-        self.password = password
-        self.authenticationEndpoint = authenticationEndpoint
-    }
-
-    func authenticate(onSuccess: @escaping (String) -> Void, onFailure: @escaping (Error) -> Void) {
-        onSuccess("test")
-    }
-}*/
-//#endif
+#Preview("Measurment View with Error Dialog") {
+    MeasurementView(viewModel: MockMeasurementViewModel(
+        showError: true,
+        error: MeasurementError.noCurrentMeasurement
+    ))
+    .tint(Color("Cyface-Green"))
+}

@@ -49,6 +49,42 @@ class MockAuthenticator: Authenticator {
     var longitude: String = "0.0"
 
     var error: (any Error)? = nil
+}
 
+@Observable class MockMeasurementViewModel: MeasurementViewModel {
+    var isCurrentlyCapturing: Bool
+    var isPaused: Bool
+    var showError: Bool
+    var error: Swift.Error?
+
+    init(isCurrentlyCapturing: Bool = false, isPaused: Bool = false, showError: Bool = false, error: Swift.Error? = nil) {
+        self.isCurrentlyCapturing = isCurrentlyCapturing
+        self.isPaused = isPaused
+        self.showError = showError
+        self.error = error
+    }
+
+    func start() {
+        debugPrint("start")
+        isCurrentlyCapturing = true
+        isPaused = false
+    }
+    
+    func pause() {
+        debugPrint("pause")
+        isCurrentlyCapturing = false
+        isPaused = true
+    }
+    
+    func stop() {
+        debugPrint("stop")
+        isCurrentlyCapturing = false
+        isPaused = false
+    }
+    
+    func currentMeasurementViewModel() -> any CurrentMeasurementViewModel {
+        return MockCurrentMeasurementViewModel()
+    }
+    
 
 }

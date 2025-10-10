@@ -23,10 +23,10 @@ import Foundation
 @Observable class InitialViewModel {
     /// A flag that is `false` as long as the user is not properly authenticated and `true` otherwise.
     var isAuthenticated = false
+    /// A flag telling the UI whether the current error should be shown or not.
+    var showError = false
     /// The most recent error encountered during initialization or `nil` if no error occurred.
-    var error: Error?
+    var error: Swift.Error?
     /// A flag that is `true` for as long as this application is in its initialization process and false otherwise.
     var isInitializing = false
-
-
 }

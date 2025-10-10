@@ -20,6 +20,7 @@
 import Foundation
 import DataCapturing
 import UIKit // Required for UIImage
+import Combine
 
 protocol CurrentMeasurementViewModel {
     var hasFix: UIImage { get set }
@@ -56,6 +57,7 @@ protocol CurrentMeasurementViewModel {
     // TODO: private let coreDateStack: CoreDataManager
     /// The device wide unique identifier of the currently captured measurement.
     // TODO: private let measurementIdentifier: Int64?
+    private var measurementEventsSubscription: AnyCancellable?
 
     /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
     init(measurement: DataCapturing.Measurement, distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
@@ -68,10 +70,26 @@ protocol CurrentMeasurementViewModel {
         // TODO: self.coreDateStack = appState.dcs.coreDataStack
         // TODO: self.measurementIdentifier = appState.dcs.currentMeasurement
         // TODO: appState.dcs.handler.append(self.handle)
+
+        self.measurementEventsSubscription = measurement.events.sink { message in
+            switch message {
+            case .hasFix:
+                self.hasFix = UIImage(systemName: "mappin")!
+            case .fixLost:
+                self.hasFix = UIImage(systemName: "mappin.slash")!
+            case .capturedLocation(let location):
+                self.speed = String(format: "%.2f km/s", location.speed / 3.6)
+                self.latitude = String(format: "%.2f", location.latitude)
+                self.longitude = String(format: "%.2f", location.longitude)
+            default:
+                break
+            }
+        }
     }
 
-    
-
+    deinit {
+        self.measurementEventsSubscription = nil
+    }
 }
 
 /* TODO: extension CurrentMeasurementViewModel: CyfaceEventHandler {
