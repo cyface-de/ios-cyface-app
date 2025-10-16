@@ -17,6 +17,7 @@
  * along with the Cyface iOS App. If not, see <http://www.gnu.org/licenses/>.
  */
 import Foundation
+import CoreLocation
 import DataCapturing
 
 protocol MeasurementViewModel {
@@ -36,6 +37,7 @@ protocol MeasurementViewModel {
     func currentMeasurementViewModel() -> CurrentMeasurementViewModel
 }
 
+@MainActor
 @Observable class ProductionMeasurementViewModel {
     // TODO: Initialise correctly if measurement has been running in the background
     // MARK: - Properties
@@ -46,7 +48,21 @@ protocol MeasurementViewModel {
 
     private var currentMeasurement: DataCapturing.Measurement?
     private var sensorCapturer = SmartphoneSensorCapturer()
-    private var locationCapturer = SmartphoneLocationCapturer()
+    private var locationCapturer = SmartphoneLocationCapturer(locationManagerFactory: {
+        let manager = CLLocationManager()
+        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        manager.allowsBackgroundLocationUpdates = true
+        manager.pausesLocationUpdatesAutomatically = false
+        manager.showsBackgroundLocationIndicator = true
+        manager.distanceFilter = kCLDistanceFilterNone
+
+        if manager.authorizationStatus == .denied || manager.authorizationStatus == .notDetermined || manager.authorizationStatus == .restricted {
+            manager.requestWhenInUseAuthorization()
+            manager.requestAlwaysAuthorization()
+        }
+
+        return manager
+    })
 }
 
 // MARK: - MeasurementViewModel adoption

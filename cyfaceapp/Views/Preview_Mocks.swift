@@ -36,7 +36,7 @@ class MockAuthenticator: Authenticator {
 }
 
 @Observable class MockCurrentMeasurementViewModel: CurrentMeasurementViewModel {
-    var hasFix: UIImage = UIImage(systemName: "mappin.slash")!
+    var hasFix = "mappin.slash"
 
     var distance: String = "0 km"
 

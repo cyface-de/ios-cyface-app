@@ -40,7 +40,7 @@ struct CurrentMeasurementView: View {
                     Text("GPS Fix")
                         .lineLimit(1)
                     Spacer()
-                    Image(uiImage: viewModel.hasFix)
+                    Image(systemName: viewModel.hasFix)
                         .resizable()
                         .scaledToFit()
                         .frame(height: 20.0)
@@ -100,6 +100,7 @@ struct CurrentMeasurementView: View {
     CurrentMeasurementView(
         viewModel: MockCurrentMeasurementViewModel()
     )
+    .tint(.cyfaceGreen)
     /*static var appState: ApplicationState {
         let ret = ApplicationState(settings: PreviewSettings())
         //ret.duration = 200

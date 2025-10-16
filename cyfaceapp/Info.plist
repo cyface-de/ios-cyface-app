@@ -4,8 +4,12 @@
 <dict>
 	<key>NSMotionUsageDescription</key>
 	<string>Please enable motion updates for detection of street quality</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Location updates are required to locate your measured ways!</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>location updates are required to locate your measured ways</string>
+	<string>Location updates are required to locate your measured ways!</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Location updates are required to locate your measured ways!</string>
 	<key>CFBundleGetInfoString</key>
 	<string></string>
 	<key>CFBundleURLTypes</key>

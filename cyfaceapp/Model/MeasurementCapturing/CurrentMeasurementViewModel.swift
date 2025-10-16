@@ -23,7 +23,7 @@ import UIKit // Required for UIImage
 import Combine
 
 protocol CurrentMeasurementViewModel {
-    var hasFix: UIImage { get set }
+    var hasFix: String { get set }
     var distance: String { get set }
     var speed: String { get set }
     var duration: String { get set }
@@ -38,9 +38,10 @@ protocol CurrentMeasurementViewModel {
  The measurement is loaded from the Cyface backend and used to refresh the attributes necessary to show all the relevant information.
  All the attributes are formatted properly.
  */
+@MainActor
 @Observable class ProductionCurrentMeasurementViewModel: CurrentMeasurementViewModel {
     /// The GPS status image presented to the user. This changes based on whether the App has a GPS fix or not.
-    var hasFix: UIImage
+    var hasFix: String
     /// The currently driven distance under the current measurement.
     var distance: String
     /// The current speed as reported by the Cyface data capturing service.
@@ -61,7 +62,7 @@ protocol CurrentMeasurementViewModel {
 
     /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
     init(measurement: DataCapturing.Measurement, distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
-        self.hasFix = UIImage(systemName: "mappin.slash")!
+        self.hasFix = "mappin.slash"
         self.distance = distance
         self.speed = speed
         self.duration = duration
@@ -74,9 +75,9 @@ protocol CurrentMeasurementViewModel {
         self.measurementEventsSubscription = measurement.events.sink { message in
             switch message {
             case .hasFix:
-                self.hasFix = UIImage(systemName: "mappin")!
+                self.hasFix = "mappin"
             case .fixLost:
-                self.hasFix = UIImage(systemName: "mappin.slash")!
+                self.hasFix = "mappin.slash"
             case .capturedLocation(let location):
                 self.speed = String(format: "%.2f km/s", location.speed / 3.6)
                 self.latitude = String(format: "%.2f", location.latitude)
@@ -85,10 +86,6 @@ protocol CurrentMeasurementViewModel {
                 break
             }
         }
-    }
-
-    deinit {
-        self.measurementEventsSubscription = nil
     }
 }
 
