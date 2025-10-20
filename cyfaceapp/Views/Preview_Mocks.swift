@@ -10,8 +10,6 @@ import UIKit
 
 /**
  An authenticator that does not communicate with any server and only provides a fake authentication token.
-
- - Author: Klemens Muthmann
  */
 class MockAuthenticator: Authenticator {
     func authenticate(onSuccess: @escaping (String) -> Void, onFailure: @escaping (Error) -> Void) {
@@ -51,7 +49,15 @@ class MockAuthenticator: Authenticator {
     var error: (any Error)? = nil
 }
 
+/// A mock view model for the view showing the main dialog of the application.
+///
+/// It is used for previews and UI testing.
+/// This view model shows only static values and is otherwise quite dumb.
 @Observable class MockMeasurementViewModel: MeasurementViewModel {
+
+    
+    var isInitialized = true
+    var finishedMeasurements = [MeasurementListEntryViewModel]()
     var isCurrentlyCapturing: Bool
     var isPaused: Bool
     var showError: Bool
@@ -80,11 +86,19 @@ class MockAuthenticator: Authenticator {
         debugPrint("stop")
         isCurrentlyCapturing = false
         isPaused = false
+        finishedMeasurements.append(MeasurementListEntryViewModel(id: UInt64(finishedMeasurements.count)))
     }
-    
+
+    func startSynchronization() {
+        debugPrint("Starting Synchronization")
+    }
+
+    func deleteMeasurements(at: IndexSet) {
+        debugPrint("Deleting")
+        finishedMeasurements.remove(atOffsets: at)
+    }
+
     func currentMeasurementViewModel() -> any CurrentMeasurementViewModel {
         return MockCurrentMeasurementViewModel()
     }
-    
-
 }

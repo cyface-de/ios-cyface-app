@@ -34,5 +34,5 @@ struct MeasurementListEntryViewModel: Identifiable {
         }
     }
     /// The device wide unique identifier of the measurement to display.
-    let id: Int64
+    let id: UInt64
 }

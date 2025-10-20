@@ -44,10 +44,10 @@ struct MeasurementView: View {
     var body: some View {
         VStack {
             List {
-    /*            ForEach($appState.measurements) { $row in
+                ForEach($viewModel.finishedMeasurements) { $row in
                         MeasurementListView(measurementViewModel: $row)
                     }
-                .onDelete(perform: deleteMeasurements)*/
+                .onDelete(perform: deleteMeasurements)
             }
 
          if viewModel.isCurrentlyCapturing || viewModel.isPaused {
@@ -126,19 +126,14 @@ struct MeasurementView: View {
                 Text(viewModel.error?.localizedDescription ?? "")
             })
             .onAppear() {
-                // TODO: appState.startSynchronization(authenticator: self.authenticator)
+                viewModel.startSynchronization()
             }
     }
 
     /// Handles calling delete on one or more measurements.
-    /*private func deleteMeasurements(at offsets: IndexSet) {
-        do {
-            try appState.deleteMeasurements(at: offsets)
-        } catch {
-            showError = true
-            errorMessage = error.localizedDescription
-        }
-    }*/
+    private func deleteMeasurements(at offsets: IndexSet) {
+        viewModel.deleteMeasurements(at: offsets)
+    }
 }
 
 #Preview("Default View") {

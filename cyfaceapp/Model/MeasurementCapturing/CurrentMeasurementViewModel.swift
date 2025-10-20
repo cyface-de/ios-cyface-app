@@ -54,10 +54,9 @@ protocol CurrentMeasurementViewModel {
     var longitude: String
     /// The last error, that occured during capturing the current measurement.
     var error: (any Error)? = nil
-    /// The CoreData stack used to access the database and load information about the current measurement.
-    // TODO: private let coreDateStack: CoreDataManager
-    /// The device wide unique identifier of the currently captured measurement.
-    // TODO: private let measurementIdentifier: Int64?
+    /// This keeps a handle to the Combine processing pipeline.
+    ///
+    /// If no such handle is kept, Swift will remove the pipeline stopping event handling in the process.
     private var measurementEventsSubscription: AnyCancellable?
 
     /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
@@ -68,9 +67,6 @@ protocol CurrentMeasurementViewModel {
         self.duration = duration
         self.latitude = latitude
         self.longitude = longitude
-        // TODO: self.coreDateStack = appState.dcs.coreDataStack
-        // TODO: self.measurementIdentifier = appState.dcs.currentMeasurement
-        // TODO: appState.dcs.handler.append(self.handle)
 
         self.measurementEventsSubscription = measurement.events.sink { message in
             switch message {

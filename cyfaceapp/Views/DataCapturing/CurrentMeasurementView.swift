@@ -101,33 +101,4 @@ struct CurrentMeasurementView: View {
         viewModel: MockCurrentMeasurementViewModel()
     )
     .tint(.cyfaceGreen)
-    /*static var appState: ApplicationState {
-        let ret = ApplicationState(settings: PreviewSettings())
-        //ret.duration = 200
-
-        return ret
-    }
-
-    static var errorModel: CurrentMeasurementViewModel {
-        let ret = CurrentMeasurementViewModel(appState: appState)
-        ret.hasError = true
-        ret.errorMessage = "Some error message!"
-
-        return ret
-    }
-
-    static var previews: some View {
-        CurrentMeasurementView(viewModel: CurrentMeasurementViewModel(appState: appState))
-            .previewDevice("iPod touch (7th generation)")
-            .previewInterfaceOrientation(.portraitUpsideDown)
-
-        CurrentMeasurementView(viewModel: CurrentMeasurementViewModel(appState: appState))
-            .previewDevice("iPhone 12")
-            .previewInterfaceOrientation(.portraitUpsideDown)
-
-        CurrentMeasurementView(viewModel: CurrentMeasurementViewModel(appState: appState))
-            .preferredColorScheme(.dark)
-
-        CurrentMeasurementView(viewModel: errorModel)
-    }*/
 }
