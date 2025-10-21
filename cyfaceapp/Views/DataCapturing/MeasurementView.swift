@@ -102,7 +102,7 @@ struct MeasurementView: View {
             .toolbar {
                 ToolbarItem(placement: .destructiveAction) {
                     Button(action: {
-//                        appState.sync()
+                        viewModel.startSynchronization()
                     }) {
                         Image(systemName: "square.and.arrow.up")
                     }

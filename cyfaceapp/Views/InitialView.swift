@@ -27,27 +27,19 @@ import DataCapturing
  If the user is not authenticated it shows a way to authenticate, otherwise the user is directly forwarded to the main user interface..
  */
 struct InitialView: View {
-    @State private var viewModel = InitialViewModel()
-    /// The authenticator used to associate the app with a Cyface user account.
-    ///
-    /// The account is used to store captured data and view analysis carried out on that data.
-    private var authenticator = OAuthAuthenticator(
-        issuer: URL(string: "https://s1-a.cyface.de/realms/rfr")!,
-        redirectUri: URL(string: "de.cyface.app:/oauth2redirect/")!,
-        apiEndpoint: URL(string: "https://s1-b.cyface.de/provider/api/v2/")!,
-        clientId: "cyface-ios-app"
-    )
+    @State var viewModel: InitialViewModel
 
+    // MARK: - View Body
     var body: some View {
         NavigationStack {
             if viewModel.isInitializing {
                 SplashScreen()
             } else if viewModel.isAuthenticated {
-                MeasurementView(viewModel: ProductionMeasurementViewModel())
+                MeasurementView(viewModel: ProductionMeasurementViewModel(backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate))
             } else {
-                AuthenticationView(authenticator: authenticator, viewModel: viewModel)
+                AuthenticationView(authenticator: viewModel.authenticator, viewModel: viewModel)
                     .onOpenURL(perform: { url in
-                        authenticator.callback(url: url)
+                        viewModel.authenticator?.callback(url: url)
                     })
             }
         }
@@ -60,6 +52,10 @@ struct InitialView: View {
 }
 
 #Preview {
-    InitialView()
+    InitialView(
+        viewModel: InitialViewModel(
+            backgroundUrlSessionEventDelegate: MockAppDelegate()
+        )
+    )
         .tint(Color("Cyface-Green"))
 }

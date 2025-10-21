@@ -18,6 +18,7 @@
  */
 
 import Foundation
+import DataCapturing
 
 /// The MVVM view model used during the initial startup of the application.
 @Observable class InitialViewModel {
@@ -29,4 +30,30 @@ import Foundation
     var error: Swift.Error?
     /// A flag that is `true` for as long as this application is in its initialization process and false otherwise.
     var isInitializing = false
+    /// The authenticator used to associate the app with a Cyface user account.
+    ///
+    /// The account is used to store captured data and view analysis carried out on that data.
+    var authenticator: Authenticator? = nil
+    /// A delegate to handle resume of background URL Sessions.
+    ///
+    /// This is required to hand down to the main measurement view of the application.
+    let backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate
+
+    init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
+        self.backgroundUrlSessionEventDelegate = backgroundUrlSessionEventDelegate
+        do {
+            let config = try Config.load()
+
+            self.authenticator = OAuthAuthenticator(
+                issuer: try config.getIssuerUri(),
+                redirectUri: try config.getRedirectUri(),
+                apiEndpoint: try config.getApiEndpoint(),
+                clientId: config.clientId,
+                authStateKey: CyfaceApp.authStateKey
+            )
+        } catch {
+            self.error = error
+            self.showError = true
+        }
+    }
 }

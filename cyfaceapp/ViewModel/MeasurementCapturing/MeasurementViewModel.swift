@@ -20,6 +20,7 @@ import Foundation
 import CoreLocation
 import DataCapturing
 import OSLog
+import Combine
 
 protocol MeasurementViewModel {
     // MARK: - Properties
@@ -73,11 +74,58 @@ protocol MeasurementViewModel {
         return manager
     })
     private var coreDataStack: CoreDataStack?
+    private var sessionRegistry: SessionRegistry?
+    private var uploadFactory: UploadFactory?
+    private var urlSession: URLSession?
+    private var authenticator: Authenticator?
+    private let synchronizationMessagesBus = PassthroughSubject<UploadStatus, Never>()
+    private var config: Config?
 
     // MARK: - Initializers
-    init() {
+    init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
         do {
-            self.coreDataStack = try CoreDataStack()
+            let config = try Config.load()
+            let authenticator = OAuthAuthenticator(
+                issuer: try config.getIssuerUri(),
+                redirectUri: try config.getRedirectUri(),
+                apiEndpoint: try config.getApiEndpoint(),
+                clientId: config.clientId,
+                authStateKey: CyfaceApp.authStateKey
+            )
+            let coreDataStack = try CoreDataStack()
+            let sensorValueFileFactory = try DefaultSensorValueFileFactory()
+            self.coreDataStack = coreDataStack
+            let uploadFactory = CoreDataBackedUploadFactory(dataStoreStack: coreDataStack)
+            let sessionRegistry = PersistentSessionRegistry(dataStoreStack: coreDataStack, uploadFactory: uploadFactory)
+            let backgroundProcessDelegate = BackgroundProcessDelegate(
+                dataStoreStack: coreDataStack,
+                sensorValueFileFactory: sensorValueFileFactory,
+                sessionRegistry: sessionRegistry,
+                messageBus: synchronizationMessagesBus,
+                eventHandler: BackgroundEventHandler(
+                    sessionRegistry: sessionRegistry,
+                    messageBus: synchronizationMessagesBus,
+                    authenticator: authenticator,
+                    collectorUrl: try config.getApiEndpoint()
+                ),
+                backgroundUrlSessionEventDelegate: backgroundUrlSessionEventDelegate
+            )
+
+            let urlSessionConfig = URLSessionConfiguration.background(withIdentifier: AppDelegate.discretionaryUploadSessionIdentifier)
+            //Determines the maximum number of simulataneous connections to a Host. This is a per session property.
+            urlSessionConfig.httpMaximumConnectionsPerHost = 1
+            // This controles whether you are allowed to continue your upload/download over cellular access.
+            urlSessionConfig.allowsCellularAccess = false
+            // This makes sure you get an event on your app session launch (in your AppDelegate). (Your app might be killed by system even if your upload/download is going on)
+            urlSessionConfig.sessionSendsLaunchEvents = true
+            // This tells the system to wait for connectivity and then resume uploading/downloading. If the network goes away, it will restart from 0.
+            // This is ignored by background sessions always waiting for connectivity
+            urlSessionConfig.waitsForConnectivity = true
+            // Only transmit during convenient times
+            urlSessionConfig.isDiscretionary = true
+
+            let urlSession = URLSession(configuration: urlSessionConfig, delegate: backgroundProcessDelegate, delegateQueue: nil)
+
             Task {
                 if let coreDataStack = self.coreDataStack {
                     try await coreDataStack.setup()
@@ -94,6 +142,12 @@ protocol MeasurementViewModel {
                             )
                         }
                     })
+
+                    self.config = config
+                    self.sessionRegistry = sessionRegistry
+                    self.uploadFactory = uploadFactory
+                    self.urlSession = urlSession
+                    self.authenticator = authenticator
                     isInitialized = true
                 }
             }
@@ -115,7 +169,7 @@ protocol MeasurementViewModel {
             request.fetchLimit = 1
 
             guard let measurement = try request.execute().first else {
-                throw MeasurementViewModelError.noSuchMeasurement(identifier: databaseIdentifier)
+                throw CyfaceError.noSuchMeasurement(identifier: databaseIdentifier)
             }
 
             return calculateCoveredDistance(tracks: measurement.typedTracks())
@@ -149,7 +203,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
     func start() {
         debugPrint("Start Data Capturing")
         guard let coreDataStack = self.coreDataStack else {
-            self.error = MeasurementViewModelError.notInitialized
+            self.error = CyfaceError.notInitialized
             self.showError = true
             return
         }
@@ -209,7 +263,48 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
     }
 
     func startSynchronization() {
-        // TODO: Implement Synchronization
+        do {
+            // TODO: Maybe try to setup everything here.
+            guard let config = self.config else {
+                throw CyfaceError.notInitialized
+            }
+            guard let sessionRegistry = self.sessionRegistry else {
+                throw CyfaceError.notInitialized
+            }
+            guard let uploadFactory = self.uploadFactory else {
+                throw CyfaceError.notInitialized
+            }
+            guard let authenticator = self.authenticator else {
+                throw CyfaceError.notInitialized
+            }
+            guard let urlSession = self.urlSession else {
+                throw CyfaceError.notInitialized
+            }
+
+        var backgroundUploadProcess = BackgroundUploadProcessBuilder.create(
+            sessionRegistry: sessionRegistry,
+            collectorUrl: try config.getApiEndpoint(),
+            uploadFactory: uploadFactory,
+            authenticator: authenticator,
+            urlSession: urlSession
+        ).build()
+
+            try coreDataStack?.wrapInContext { context in
+                let request = MeasurementMO.fetchRequest()
+                request.predicate = NSPredicate(format: "synchronizable = true")
+
+                try request.execute().map{ measurementMO in
+                    try FinishedMeasurement(managedObject: measurementMO)
+                }.forEach { finishedMeasurement in
+                    Task {
+                        try await backgroundUploadProcess.upload(measurement: finishedMeasurement)
+                    }
+                }
+            }
+        } catch {
+            self.error = error
+            self.showError = true
+        }
     }
 
     func deleteMeasurements(at: IndexSet) {
@@ -225,18 +320,3 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
     }
 }
 
-enum MeasurementViewModelError: Error {
-    case notInitialized
-    case noSuchMeasurement(identifier: UInt64)
-}
-
-extension MeasurementViewModelError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case .notInitialized:
-            return NSLocalizedString("de.cyface.app.error.notinitialized", comment: "The view was not properly initialized, which is most likely caused if the persistence layer was not setup properly.")
-        case .noSuchMeasurement:
-            return NSLocalizedString("de.cyface.app.error.nosuchmeasurement", comment: "The app tried to load a measurement that did not exist!")
-        }
-    }
-}

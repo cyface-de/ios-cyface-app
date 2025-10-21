@@ -16,10 +16,10 @@ class LoginViewController: UIViewController {
     /// The delegate to report success or errors from the login process, so the rest of the user interface can react to it.
     let delegate: LoginViewControllerDelegate
     /// The authenticator handling the authentication process.
-    let authenticator: Authenticator
+    let authenticator: Authenticator?
 
     // MARK: - Initializers
-    init(authenticator: Authenticator, delegate: LoginViewControllerDelegate) {
+    init(authenticator: Authenticator?, delegate: LoginViewControllerDelegate) {
         self.authenticator = authenticator
         self.delegate = delegate
         super.init(nibName: nil, bundle: nil)
@@ -58,6 +58,9 @@ class LoginViewController: UIViewController {
 
     @objc func doAuth() {
         Task {
+            guard let authenticator = self.authenticator else {
+                return delegate.onError(error: CyfaceError.authenticatorNotInitialized)
+            }
             do {
                 // TODO: Why is this thrown away?
                 _ = try await authenticator.authenticate()

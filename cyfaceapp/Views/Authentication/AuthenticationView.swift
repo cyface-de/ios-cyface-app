@@ -26,103 +26,11 @@ import DataCapturing
  - author: Klemens Muthmann
  */
 struct AuthenticationView {
-    /// The current application state.
-    //@EnvironmentObject var appState: ApplicationState
-    /// The view model used by this view.
-    //@StateObject private var credentials: LoginViewModel
-    /// If `true` the view shows an error message.
-    //@State private var showError: Bool
-    /// The error message to show if `showError` is `true`.
-    //@State private var errorMessage: String?
-    let authenticator: Authenticator
+    let authenticator: Authenticator?
     @Bindable var viewModel: InitialViewModel
 
     @Environment(\.dismiss) var dismiss
 
-    /**
-     Initialize the view from the system settings.
-     */
-    /*init(settings: Settings, showError: Bool = false, errorMessage: String? = nil) {
-        // According to a talk from WWDC 21 this is considered valid, even though the documentation says otherwise.
-        // See: https://swiftui-lab.com/random-lessons/#data-10
-        self._credentials = StateObject(wrappedValue: LoginViewModel(settings: settings))
-        self.showError = showError
-        self.errorMessage = errorMessage
-    }
-
-    var body: some View {
-        if appState.isLoggedIn {
-            // FIXME: MeasurementView(authenticator: credentials.authenticator)
-            MeasurementView()
-        } else {
-
-            VStack {
-
-                Image("Cyface-Logo")
-
-                VStack {
-                    HStack {
-                        Image(systemName: "person")
-                        TextField("Username", text: $credentials.username)
-                            .textFieldStyle(CyfaceTextField())
-                    }
-                    .padding()
-                    .overlay(
-                            RoundedRectangle(cornerRadius: 15)
-                    .stroke(lineWidth: 2))
-                    .foregroundColor(.gray)
-
-                    HStack {
-                        Image(systemName: "lock")
-                        SecureField("Password", text: $credentials.password)
-                            .textFieldStyle(CyfaceTextField())
-                    }
-                    .padding()
-                    .overlay(
-                            RoundedRectangle(cornerRadius: 15)
-                            .stroke(lineWidth: 2)
-                        )
-                    .foregroundColor(.gray)
-
-                }.padding()
-
-
-                AsyncButton(action: {
-                    do {
-                        try credentials.login(onSuccess: {
-                            appState.isLoggedIn = true
-                        }, onFailure: { error in
-                            showError = true
-                            errorMessage = error.localizedDescription
-                        })
-                    } catch {
-                        showError = true
-                        errorMessage = error.localizedDescription
-                    }
-                }) {
-                    Text("Login")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding([.trailing, .leading])
-
-                LabelledDivider(label: "or")
-
-                NavigationLink(destination: HCaptchaView(settings: credentials.settings)) {
-                    Text("Register New Account")
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .navigationBarHidden(true)
-            .navigationTitle("Login")
-            .alert("Error", isPresented: $showError, actions: {
-                // actions
-            }, message: {
-                Text(errorMessage ?? "")
-            })
-            .tint(Color("Cyface-Green"))
-        }
-    }*/
     class Coordinator: LoginViewControllerDelegate {
         let viewModel: InitialViewModel
 
@@ -155,39 +63,11 @@ extension AuthenticationView: UIViewControllerRepresentable {
     }
 }
 
-/*struct ContentView_Previews: PreviewProvider {
-    private static var settings: Settings {
-        let ret = PreviewSettings()
-        ret.authenticatedServerUrl = nil
-        return ret
-    }
-
-    private static var appState: ApplicationState {
-        let ret = ApplicationState(settings: settings)
-        ret.isLoggedIn = false
-        return ret
-    }
-
-    static var previews: some View {
-
-        Group {
-            NavigationView {
-                LoginView(settings: settings).preferredColorScheme(.light).environmentObject(appState)
-            }
-
-            NavigationView {
-                LoginView(settings: settings).preferredColorScheme(.dark).environmentObject(appState)
-            }
-
-            NavigationView {
-                LoginView(settings: settings, showError: true, errorMessage: "This is some generic error message!").environmentObject(appState)
-            }
-        }
-    }
-}*/
-
 #Preview {
     AuthenticationView(
-        authenticator: MockAuthenticator(), viewModel: InitialViewModel()
+        authenticator: MockAuthenticator(),
+        viewModel: InitialViewModel(
+            backgroundUrlSessionEventDelegate: MockAppDelegate()
+        )
     )
 }
