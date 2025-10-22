@@ -38,30 +38,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Resources/Production.json,
-				Resources/Staging.json,
 			);
 			target = AA0F18212CB81EBA0070045B /* cyfaceapp */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		AA23F5B52EA792CD000186AA /* Exceptions for "cyfaceapp" folder in "Copy Bundle Resources" phase from "cyfaceapp" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = AA0F18202CB81EBA0070045B /* Resources */;
-			membershipExceptions = (
-				Resources/Production.json,
-				Resources/Staging.json,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AA0F18242CB81EBA0070045B /* cyfaceapp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AAB736182E955D450056FAFD /* Exceptions for "cyfaceapp" folder in "cyfaceapp" target */,
-				AA23F5B52EA792CD000186AA /* Exceptions for "cyfaceapp" folder in "Copy Bundle Resources" phase from "cyfaceapp" target */,
 			);
 			path = cyfaceapp;
 			sourceTree = "<group>";
