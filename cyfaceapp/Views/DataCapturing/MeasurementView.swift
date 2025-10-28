@@ -121,13 +121,9 @@ struct MeasurementView: View {
             }
             .frame(maxWidth: .infinity)
             .alert("Error", isPresented: $viewModel.showError, actions: {
-                // actions
             }, message: {
                 Text(viewModel.error?.localizedDescription ?? "")
             })
-            .onAppear() {
-                viewModel.startSynchronization()
-            }
     }
 
     /// Handles calling delete on one or more measurements.

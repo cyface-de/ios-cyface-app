@@ -73,12 +73,14 @@ protocol MeasurementViewModel {
 
         return manager
     })
+    private var persistenceLayer: PersistenceLayer?
     private var coreDataStack: CoreDataStack?
     private var sessionRegistry: SessionRegistry?
     private var uploadFactory: UploadFactory?
     private var urlSession: URLSession?
     private var authenticator: Authenticator?
     private let synchronizationMessagesBus = PassthroughSubject<UploadStatus, Never>()
+    private var synchronizationMessagesProcessingHandle: AnyCancellable? = nil
     private var config: Config?
 
     // MARK: - Initializers
@@ -93,21 +95,24 @@ protocol MeasurementViewModel {
                 authStateKey: CyfaceApp.authStateKey
             )
             let coreDataStack = try CoreDataStack()
+            self.persistenceLayer = PersistenceLayer(coreDataStack)
             let sensorValueFileFactory = try DefaultSensorValueFileFactory()
             self.coreDataStack = coreDataStack
             let uploadFactory = CoreDataBackedUploadFactory(dataStoreStack: coreDataStack)
             let sessionRegistry = PersistentSessionRegistry(dataStoreStack: coreDataStack, uploadFactory: uploadFactory)
+            let backgroundEventHandler = BackgroundEventHandler(
+                sessionRegistry: sessionRegistry,
+                messageBus: synchronizationMessagesBus,
+                authenticator: authenticator,
+                collectorUrl: try config.getApiEndpoint()
+            )
+
             let backgroundProcessDelegate = BackgroundProcessDelegate(
                 dataStoreStack: coreDataStack,
                 sensorValueFileFactory: sensorValueFileFactory,
                 sessionRegistry: sessionRegistry,
                 messageBus: synchronizationMessagesBus,
-                eventHandler: BackgroundEventHandler(
-                    sessionRegistry: sessionRegistry,
-                    messageBus: synchronizationMessagesBus,
-                    authenticator: authenticator,
-                    collectorUrl: try config.getApiEndpoint()
-                ),
+                eventHandler: backgroundEventHandler,
                 backgroundUrlSessionEventDelegate: backgroundUrlSessionEventDelegate
             )
 
@@ -125,10 +130,13 @@ protocol MeasurementViewModel {
             urlSessionConfig.isDiscretionary = true
 
             let urlSession = URLSession(configuration: urlSessionConfig, delegate: backgroundProcessDelegate, delegateQueue: nil)
+            backgroundEventHandler.discretionaryUrlSession = urlSession
 
             Task {
                 if let coreDataStack = self.coreDataStack {
+                    debugPrint("Calling Setup")
                     try await coreDataStack.setup()
+                    debugPrint("Called Setup")
                     self.finishedMeasurements.append(contentsOf: try coreDataStack.wrapInContextReturn { context in
                         let request = MeasurementMO.fetchRequest()
                         request.predicate = NSPredicate(format: "synchronizable = true || synchronized = true")
@@ -149,6 +157,7 @@ protocol MeasurementViewModel {
                     self.urlSession = urlSession
                     self.authenticator = authenticator
                     isInitialized = true
+                    startSynchronization()
                 }
             }
         } catch {
@@ -157,23 +166,17 @@ protocol MeasurementViewModel {
         }
     }
 
+    // MARK: - Private Methods
     /// Called if the measurement identified by the provided identifier has finished data capturing.
     private func onFinishedMeasurement(_ databaseIdentifier: UInt64) throws {
         os_log("Cleanup after measurement has finished", log: OSLog.measurement, type: .debug)
         self.isCurrentlyCapturing = false
         self.isPaused = false
         self.currentMeasurement = nil
-        let distance = try coreDataStack?.wrapInContextReturn { context in
-            let request = MeasurementMO.fetchRequest()
-            request.predicate = NSPredicate(format: "identifier = %@", NSNumber(value: databaseIdentifier))
-            request.fetchLimit = 1
-
-            guard let measurement = try request.execute().first else {
-                throw CyfaceError.noSuchMeasurement(identifier: databaseIdentifier)
-            }
-
-            return calculateCoveredDistance(tracks: measurement.typedTracks())
+        let distance = try persistenceLayer?.on(measurementIdentifiedBy: databaseIdentifier) { measurement in
+            calculateCoveredDistance(tracks: measurement.typedTracks())
         }
+
         finishedMeasurements.append(MeasurementListEntryViewModel(distance: distance ?? 0.0, id: databaseIdentifier))
     }
 
@@ -193,6 +196,10 @@ protocol MeasurementViewModel {
                 .reduce(0.0) { accumulator, next in
                     accumulator + next
                 }
+    }
+
+    private func findMeasurementInView(_ measurement: FinishedMeasurement) -> MeasurementListEntryViewModel? {
+        finishedMeasurements.first(where: {$0.id == measurement.identifier})
     }
 }
 
@@ -283,11 +290,74 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
 
         var backgroundUploadProcess = BackgroundUploadProcessBuilder.create(
             sessionRegistry: sessionRegistry,
-            collectorUrl: try config.getApiEndpoint(),
+            collectorUrl: try config.getUploadEndpoint(),
             uploadFactory: uploadFactory,
             authenticator: authenticator,
             urlSession: urlSession
         ).build()
+
+            synchronizationMessagesProcessingHandle =  synchronizationMessagesBus.sink { [weak self] uploadStatus in
+                // TODO: Ideally the upload Status should contain the HTTP response status
+                let measurementIdentifier = uploadStatus.upload.measurement.identifier
+                guard var measurementViewModel = self?.findMeasurementInView(uploadStatus.upload.measurement) else {
+                    return debugPrint("No view model for measurement \(measurementIdentifier)")
+                }
+                switch uploadStatus.status {
+                case .started:
+                    measurementViewModel.synchronizing = true
+                case .finishedSuccessfully:
+                    do {
+                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                            loadedMeasurement.synchronizable = false
+                            loadedMeasurement.synchronized = true
+                        }
+                    } catch {
+                        self?.error = error
+                        self?.showError = true
+                    }
+                    measurementViewModel.synchronizing = false
+                    measurementViewModel.synchronizationFailed = false
+                case .finishedUnsuccessfully:
+                    do {
+                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                            loadedMeasurement.synchronizable = true
+                            loadedMeasurement.synchronized = false
+                        }
+                    } catch {
+                        self?.error = error
+                        self?.showError = true
+                    }
+                    measurementViewModel.synchronizing = false
+                    measurementViewModel.synchronizationFailed = false
+                case .finishedWithError(cause: let error):
+                    // TODO: Show the error somehow.
+                    if case ServerConnectionError.noLocation = error {
+                        do {
+                            try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                                loadedMeasurement.synchronizable = false
+                                loadedMeasurement.synchronized = true
+                            }
+                        } catch {
+                            self?.error = error
+                            self?.showError = true
+                        }
+                    } else {
+                        do {
+                            try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                                loadedMeasurement.synchronized = false
+                                loadedMeasurement.synchronizable = false
+                            }
+                        } catch {
+                            self?.error = error
+                            self?.showError = true
+                        }
+                    }
+                    measurementViewModel.synchronizing = false
+                    measurementViewModel.synchronizationFailed = true
+                }
+                debugPrint("Upload for measurement \(measurementIdentifier) changed status to \(uploadStatus.status)")
+
+            }
 
             try coreDataStack?.wrapInContext { context in
                 let request = MeasurementMO.fetchRequest()
@@ -296,6 +366,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 try request.execute().map{ measurementMO in
                     try FinishedMeasurement(managedObject: measurementMO)
                 }.forEach { finishedMeasurement in
+                    debugPrint("Trying to upload measurement \(finishedMeasurement.identifier)")
                     Task {
                         try await backgroundUploadProcess.upload(measurement: finishedMeasurement)
                     }
@@ -319,4 +390,3 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
         }
     }
 }
-
