@@ -143,8 +143,7 @@ protocol MeasurementViewModel {
 
                         return try request.execute().map { measurementMO in
                             MeasurementListEntryViewModel(
-                                synchronizationFailed: false,
-                                synchronizing: false,
+                                syncStatus: .local,
                                 distance: calculateCoveredDistance(tracks: measurementMO.typedTracks()),
                                 id: measurementMO.unsignedIdentifier
                             )
@@ -304,7 +303,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 }
                 switch uploadStatus.status {
                 case .started:
-                    measurementViewModel.synchronizing = true
+                    measurementViewModel.synchronizationStarted()
                 case .finishedSuccessfully:
                     do {
                         try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
@@ -315,8 +314,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                         self?.error = error
                         self?.showError = true
                     }
-                    measurementViewModel.synchronizing = false
-                    measurementViewModel.synchronizationFailed = false
+                    measurementViewModel.synchronizationFinishedSuccessfully()
                 case .finishedUnsuccessfully:
                     do {
                         try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
@@ -327,8 +325,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                         self?.error = error
                         self?.showError = true
                     }
-                    measurementViewModel.synchronizing = false
-                    measurementViewModel.synchronizationFailed = false
+                    measurementViewModel.syncStatus = .local
                 case .finishedWithError(cause: let error):
                     // TODO: Show the error somehow.
                     if case ServerConnectionError.noLocation = error {
@@ -352,8 +349,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                             self?.showError = true
                         }
                     }
-                    measurementViewModel.synchronizing = false
-                    measurementViewModel.synchronizationFailed = true
+                    measurementViewModel.synchronizationFailed(error)
                 }
                 debugPrint("Upload for measurement \(measurementIdentifier) changed status to \(uploadStatus.status)")
 

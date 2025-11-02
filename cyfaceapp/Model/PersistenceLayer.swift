@@ -17,10 +17,11 @@ class PersistenceLayer {
     func update(measurement: FinishedMeasurement, with: (MeasurementMO) throws -> ()) throws {
         try coreDataStack.wrapInContext { context in
             let request = MeasurementMO.fetchRequest()
-            request.predicate = NSPredicate(format: "identifier=%d", NSNumber(value: measurement.identifier))
+            request.predicate = NSPredicate(format: "identifier=%@", NSNumber(value: measurement.identifier))
             request.fetchLimit = 1
+            let loadedMeasurements = try request.execute()
 
-            guard let loadedMeasurement = try request.execute().first else {
+            guard let loadedMeasurement = loadedMeasurements.first else {
                 throw CyfaceError.noSuchMeasurement(identifier: measurement.identifier)
             }
 
@@ -33,7 +34,7 @@ class PersistenceLayer {
     func on<T>(measurementIdentifiedBy: UInt64, execute: (MeasurementMO) throws -> T) throws -> T {
         try coreDataStack.wrapInContextReturn { context in
             let request = MeasurementMO.fetchRequest()
-            request.predicate = NSPredicate(format: "identifier=%d", NSNumber(value: measurementIdentifiedBy))
+            request.predicate = NSPredicate(format: "identifier=%@", NSNumber(value: measurementIdentifiedBy))
             request.fetchLimit = 1
 
             guard let loadedMeasurement = try request.execute().first else {

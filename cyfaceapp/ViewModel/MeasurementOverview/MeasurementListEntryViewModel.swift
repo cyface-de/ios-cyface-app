@@ -21,10 +21,7 @@
 ///
 /// It contains the information shown on screen as well as the current synchronization state, to show appropriate icons.
 struct MeasurementListEntryViewModel: Identifiable {
-    /// Flag which is `true` if the data synchroniation has failed and `false` otherwise. If it is true the Ui displays an exclamation mark icon and maybe some information about the error.
-    var synchronizationFailed = false
-    /// Flag which is `true` if the app is currently synchronizing data and `false` otherwise. This is used to show an acitivity or progress indicator during the upload process.
-    var synchronizing = false
+    var syncStatus = SyncStatus.local
     /// The distance of the displayed measurement. This is used to display the length of a measurement for easier disambiguation.
     var distance = 0.0
     /// The distance of the displayed measurement, properly formatted with either meters or kilometers as the unit. depending on the length.
@@ -35,4 +32,27 @@ struct MeasurementListEntryViewModel: Identifiable {
     }
     /// The device wide unique identifier of the measurement to display.
     let id: UInt64
+
+    enum SyncStatus {
+        case local
+        case synchronizing
+        case synchronized
+        case failed
+    }
+
+    /// Flag which is `true` if the data synchroniation has failed and `false` otherwise. If it is true the Ui displays an exclamation mark icon and maybe some information about the error.
+    mutating func synchronizationFailed(_ error: Error) {
+        self.syncStatus = .failed
+    }
+
+    mutating func synchronizationFinishedSuccessfully() {
+        self.syncStatus = .synchronized
+    }
+
+    /// Flag which is `true` if the app is currently synchronizing data and `false` otherwise. This is used to show an acitivity or progress indicator during the upload process.
+    mutating func synchronizationStarted() {
+        self.syncStatus = .synchronizing
+    }
 }
+
+

@@ -42,34 +42,42 @@ struct MeasurementListView: View {
 
 
         }
-            if measurementViewModel.synchronizing {
-                ProgressView()
-                    .padding()
-                    .frame(width: 50, height: 50, alignment: .center)
-            } else if measurementViewModel.synchronizationFailed {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .resizable()
-                    .padding()
-                    .frame(width: 50, height: 50, alignment: .center)
-            } else {
-                ProgressView()
-                    .padding()
-                    .hidden()
-                    .frame(width: 50, height: 50, alignment: .center)
+
+            Group {
+                switch measurementViewModel.syncStatus {
+                case .local:
+                    Image(systemName: "iphone")
+                        .resizable()
+                        .scaledToFit()
+                        .imageScale(.small)
+                case .synchronizing:
+                    ProgressView()
+                case .synchronized:
+                    Image(systemName: "checkmark.icloud")
+                        .resizable()
+                        .scaledToFit()
+                case .failed:
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .resizable()
+                        .scaledToFit()
+                }
             }
+            .padding()
+            .frame(width: 50)
+            .frame(maxHeight: .infinity)
         }
     }
 }
 
 #Preview {
         let measurementViewModel = MeasurementListEntryViewModel(distance: 10.0, id: 2)
-        MeasurementListView(measurementViewModel: .constant(measurementViewModel))
+    MeasurementListView(measurementViewModel: .constant(measurementViewModel))
 
-        let synchronizingViewModel = MeasurementListEntryViewModel(synchronizing: true, distance: 10.0, id: 2)
-        MeasurementListView(measurementViewModel: .constant(synchronizingViewModel))
+    let synchronizingViewModel = MeasurementListEntryViewModel(syncStatus: .synchronizing, distance: 10.0, id: 2)
+    MeasurementListView(measurementViewModel: .constant(synchronizingViewModel))
 
-        let synchronizationFailedViewModel = MeasurementListEntryViewModel(synchronizationFailed: true, distance: 10.0, id: 2)
-        MeasurementListView(measurementViewModel: .constant(synchronizationFailedViewModel))
+    let synchronizationFailedViewModel = MeasurementListEntryViewModel(syncStatus: .failed, distance: 10.0, id: 2)
+    MeasurementListView(measurementViewModel: .constant(synchronizationFailedViewModel))
 
-        MeasurementListView(measurementViewModel: .constant(MeasurementListEntryViewModel(distance: 2364.82374, id: 4)))
+    MeasurementListView(measurementViewModel: .constant(MeasurementListEntryViewModel(distance: 2364.82374, id: 4)))
 }
