@@ -22,6 +22,7 @@ import DataCapturing
 import OSLog
 import Combine
 
+@MainActor
 protocol MeasurementViewModel {
     // MARK: - Properties
     var isCurrentlyCapturing: Bool { get }
@@ -43,6 +44,8 @@ protocol MeasurementViewModel {
     func deleteMeasurements(at: IndexSet)
 
     func currentMeasurementViewModel() -> CurrentMeasurementViewModel
+
+    func logout() async
 }
 
 @MainActor
@@ -57,6 +60,9 @@ protocol MeasurementViewModel {
     var finishedMeasurements = [MeasurementListEntryViewModel]()
 
     private var currentMeasurement: DataCapturing.Measurement?
+    private var currentMeasurementVM: ProductionCurrentMeasurementViewModel?
+    private var locationUpdateSubscription: AnyCancellable?
+    
     private let sensorCapturer = SmartphoneSensorCapturer()
     private let locationCapturer = SmartphoneLocationCapturer(locationManagerFactory: {
         let manager = CLLocationManager()
@@ -172,6 +178,9 @@ protocol MeasurementViewModel {
         self.isCurrentlyCapturing = false
         self.isPaused = false
         self.currentMeasurement = nil
+        self.currentMeasurementVM = nil
+        self.locationUpdateSubscription = nil
+        
         let distance = try persistenceLayer?.on(measurementIdentifiedBy: databaseIdentifier) { measurement in
             calculateCoveredDistance(tracks: measurement.typedTracks())
         }
@@ -213,17 +222,32 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
             self.showError = true
             return
         }
-        let currentMeasurement = DataCapturing.MeasurementImpl(
-            sensorCapturer: sensorCapturer,
-            locationCapturer: locationCapturer
-        )
-        self.currentMeasurement = currentMeasurement
-
+        
         do {
+            // Wenn bereits pausiert, nur resume aufrufen
+            if isPaused, let existingMeasurement = currentMeasurement {
+                try existingMeasurement.resume()
+                isCurrentlyCapturing = true
+                isPaused = false
+                return
+            }
+            
+            // Neues Measurement erstellen
+            let currentMeasurement = DataCapturing.MeasurementImpl(
+                sensorCapturer: sensorCapturer,
+                locationCapturer: locationCapturer
+            )
+            self.currentMeasurement = currentMeasurement
+            
+            // WICHTIG: CurrentMeasurementViewModel MUSS vor dem start() Aufruf erstellt werden,
+            // damit es das .started Event empfangen kann!
+            let viewModel = ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
+            self.currentMeasurementVM = viewModel
+
             // TODO: Use this to recreate a measurement paused in the background during app start.
             let storage = CapturedCoreDataStorage(coreDataStack, 10, try DefaultSensorValueFileFactory())
             // TODO: Returns a measurementIdentifier. Do I need this for something?
-            _ = try storage.subscribe(to: currentMeasurement, Modalities.bicycle.dbValue, {[weak self] databaseIdentifier in
+            let measurementId = try storage.subscribe(to: currentMeasurement, Modalities.bicycle.dbValue, {[weak self] databaseIdentifier in
                 do {
                     try self?.onFinishedMeasurement(databaseIdentifier)
                 } catch {
@@ -232,11 +256,34 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 }
                 storage.unsubscribe()
             })
-            if isPaused {
-                try currentMeasurement.resume()
-            } else {
-                try currentMeasurement.start()
-            }
+            
+            // Subscribe to location updates to calculate distance in real-time
+            locationUpdateSubscription = currentMeasurement.events
+                .compactMap { message -> GeoLocation? in
+                    if case .capturedLocation(let location) = message {
+                        return location
+                    }
+                    return nil
+                }
+                .sink { [weak self] location in
+                    guard let self = self,
+                          let persistenceLayer = self.persistenceLayer else { return }
+                    
+                    do {
+                        // Calculate and update the distance
+                        let distance = try persistenceLayer.on(measurementIdentifiedBy: measurementId) { measurement in
+                            self.calculateCoveredDistance(tracks: measurement.typedTracks())
+                        }
+                        
+                        // Update the current measurement view model with the new distance
+                        self.currentMeasurementVM?.updateDistance(distance)
+                    } catch {
+                        os_log(.error, log: .measurement, "Failed to update distance: %{public}@", error.localizedDescription)
+                    }
+                }
+            
+            // Neues Measurement starten
+            try currentMeasurement.start()
             isCurrentlyCapturing = true
             isPaused = false
         } catch {
@@ -303,8 +350,10 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 }
                 switch uploadStatus.status {
                 case .started:
+                    debugPrint("App received upload started!")
                     measurementViewModel.synchronizationStarted()
                 case .finishedSuccessfully:
+                    debugPrint("App received upload finished successfully!")
                     do {
                         try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
                             loadedMeasurement.synchronizable = false
@@ -316,6 +365,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                     }
                     measurementViewModel.synchronizationFinishedSuccessfully()
                 case .finishedUnsuccessfully:
+                    debugPrint("App received upload finished unsuccessfully!")
                     do {
                         try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
                             loadedMeasurement.synchronizable = true
@@ -327,6 +377,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                     }
                     measurementViewModel.syncStatus = .local
                 case .finishedWithError(cause: let error):
+                    debugPrint("App received upload finished with error. Caused by \(error.localizedDescription)")
                     // TODO: Show the error somehow.
                     if case ServerConnectionError.noLocation = error {
                         do {
@@ -380,9 +431,26 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
 
     func currentMeasurementViewModel() -> CurrentMeasurementViewModel {
         if let currentMeasurement = self.currentMeasurement {
-            return ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
+            // Reuse existing view model if available
+            if let existingVM = currentMeasurementVM {
+                return existingVM
+            }
+            
+            // Create new view model and keep a reference
+            let viewModel = ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
+            self.currentMeasurementVM = viewModel
+            return viewModel
         } else {
             fatalError("No current measurement!")
+        }
+    }
+
+    func logout() async {
+        do {
+            try await authenticator?.logout()
+        } catch {
+            self.error = error
+            self.showError = true
         }
     }
 }

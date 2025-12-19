@@ -22,6 +22,7 @@ import DataCapturing
 import UIKit // Required for UIImage
 import Combine
 
+@MainActor
 protocol CurrentMeasurementViewModel {
     var hasFix: String { get set }
     var distance: String { get set }
@@ -54,13 +55,40 @@ protocol CurrentMeasurementViewModel {
     var longitude: String
     /// The last error, that occured during capturing the current measurement.
     var error: (any Error)? = nil
+    
     /// This keeps a handle to the Combine processing pipeline.
     ///
     /// If no such handle is kept, Swift will remove the pipeline stopping event handling in the process.
     private var measurementEventsSubscription: AnyCancellable?
+    
+    /// Timer for calculating the duration of the measurement
+    private nonisolated(unsafe) var durationTimer: AnyCancellable?
 
-    /// Initialize this view model with all zero values and an initialized ``ApplicationState``.
-    init(measurement: DataCapturing.Measurement, distance: String = "0 m", speed: String = "0 km/s", duration: String = "0 s", latitude: String = "0", longitude: String = "0") {
+    /// Start time of the current measurement segment
+    private var startTime: Date?
+    
+    /// Accumulated duration from previous segments (in seconds)
+    /// This is used to track total time when measurement is paused and resumed
+    private var accumulatedDuration: TimeInterval = 0
+    
+    /// Formatter used to display the duration of the current measurement.
+    private var timeFormatter: DateComponentsFormatter {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.allowedUnits = [.hour, .minute, .second]
+        return formatter
+    }
+
+    /// Initialize this view model with a measurement to observe.
+    ///
+    /// - Parameters:
+    ///   - measurement: The measurement to observe for updates
+    ///   - distance: Initial distance value
+    ///   - speed: Initial speed value
+    ///   - duration: Initial duration value
+    ///   - latitude: Initial latitude value
+    ///   - longitude: Initial longitude value
+    init(measurement: DataCapturing.Measurement, distance: String = "0 m", speed: String = "0 km/h", duration: String = "00:00:00", latitude: String = "0.0", longitude: String = "0.0") {
         self.hasFix = "mappin.slash"
         self.distance = distance
         self.speed = speed
@@ -68,20 +96,104 @@ protocol CurrentMeasurementViewModel {
         self.latitude = latitude
         self.longitude = longitude
 
-        self.measurementEventsSubscription = measurement.events.sink { message in
-            switch message {
-            case .hasFix:
-                self.hasFix = "mappin"
-            case .fixLost:
-                self.hasFix = "mappin.slash"
-            case .capturedLocation(let location):
-                self.speed = String(format: "%.2f km/s", location.speed / 3.6)
-                self.latitude = String(format: "%.2f", location.latitude)
-                self.longitude = String(format: "%.2f", location.longitude)
-            default:
-                break
+        // Subscribe to measurement events from both sensor and location capturers
+        self.measurementEventsSubscription = measurement.events
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
+                guard let self = self else { return }
+                
+                switch message {
+                case .started(let timestamp):
+                    self.startTime = timestamp
+                    self.accumulatedDuration = 0 // Reset bei neuem Start
+                    self.startDurationTimer()
+                    
+                case .resumed(let timestamp):
+                    self.startTime = timestamp
+                    // accumulatedDuration behalten - wird bei Pause aktualisiert
+                    self.startDurationTimer()
+                    
+                case .paused:
+                    // Akkumuliere die verstrichene Zeit vor dem Stoppen des Timers
+                    if let startTime = self.startTime {
+                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
+                    }
+                    self.stopDurationTimer()
+                    // Duration-Anzeige mit akkumulierter Zeit aktualisieren
+                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
+                        self.duration = formattedDuration
+                    }
+                    
+                case .stopped:
+                    self.stopDurationTimer()
+                    // Bei Stop die finale Duration speichern
+                    if let startTime = self.startTime {
+                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
+                    }
+                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
+                        self.duration = formattedDuration
+                    }
+                    
+                case .hasFix:
+                    self.hasFix = "mappin"
+                    
+                case .fixLost:
+                    self.hasFix = "mappin.slash"
+                    
+                case .capturedLocation(let location):
+                    // Update speed (convert from m/s to km/h)
+                    self.speed = String(format: "%.2f km/h", location.speed * 3.6)
+                    self.latitude = String(format: "%.6f", location.latitude)
+                    self.longitude = String(format: "%.6f", location.longitude)
+                    
+                default:
+                    break
+                }
             }
+    }
+    
+    deinit {
+        stopDurationTimer()
+    }
+    
+    /// Start a timer to update the duration display
+    private func startDurationTimer() {
+        stopDurationTimer() // Clear any existing timer
+        
+        durationTimer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateDuration()
+            }
+    }
+    
+    /// Stop the duration timer
+    private nonisolated func stopDurationTimer() {
+        durationTimer?.cancel()
+        durationTimer = nil
+    }
+    
+    /// Update the duration display based on elapsed time
+    private func updateDuration() {
+        guard let startTime = startTime else { return }
+        
+        // Aktuelle Segment-Zeit + akkumulierte Zeit von vorherigen Segmenten
+        let currentSegmentTime = Date().timeIntervalSince(startTime)
+        let totalElapsedTime = accumulatedDuration + currentSegmentTime
+        
+        if let formattedDuration = timeFormatter.string(from: totalElapsedTime) {
+            self.duration = formattedDuration
         }
+    }
+    
+    /// Update the distance display
+    ///
+    /// This should be called from the measurement view model when distance changes
+    /// - Parameter distanceInMeters: The distance in meters
+    func updateDistance(_ distanceInMeters: Double) {
+        self.distance = distanceInMeters < 1_000 
+            ? String(format: "%.2f m", distanceInMeters) 
+            : String(format: "%.2f km", distanceInMeters / 1_000)
     }
 }
 

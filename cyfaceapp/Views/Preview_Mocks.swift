@@ -72,21 +72,28 @@ class MockAuthenticator: Authenticator {
 ///
 /// It is used for previews and UI testing.
 /// This view model shows only static values and is otherwise quite dumb.
+@MainActor 
 @Observable class MockMeasurementViewModel: MeasurementViewModel {
-
-    
     var isInitialized = true
     var finishedMeasurements = [MeasurementListEntryViewModel]()
     var isCurrentlyCapturing: Bool
     var isPaused: Bool
     var showError: Bool
     var error: Swift.Error?
+    var isLoggedIn: Bool
 
-    init(isCurrentlyCapturing: Bool = false, isPaused: Bool = false, showError: Bool = false, error: Swift.Error? = nil) {
+    init(
+        isCurrentlyCapturing: Bool = false,
+        isPaused: Bool = false,
+        showError: Bool = false,
+        error: Swift.Error? = nil,
+        isLoggedIn: Bool = true
+    ) {
         self.isCurrentlyCapturing = isCurrentlyCapturing
         self.isPaused = isPaused
         self.showError = showError
         self.error = error
+        self.isLoggedIn = isLoggedIn
     }
 
     func start() {
@@ -119,5 +126,9 @@ class MockAuthenticator: Authenticator {
 
     func currentMeasurementViewModel() -> any CurrentMeasurementViewModel {
         return MockCurrentMeasurementViewModel()
+    }
+
+    func logout() async {
+        isLoggedIn = false
     }
 }

@@ -35,7 +35,12 @@ struct InitialView: View {
             if viewModel.isInitializing {
                 SplashScreen()
             } else if viewModel.isAuthenticated {
-                MeasurementView(viewModel: ProductionMeasurementViewModel(backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate))
+                MeasurementView(
+                    viewModel: ProductionMeasurementViewModel(
+                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate
+                    ),
+                    isLoggedIn: $viewModel.isAuthenticated
+                )
             } else {
                 AuthenticationView(authenticator: viewModel.authenticator, viewModel: viewModel)
                     .onOpenURL(perform: { url in

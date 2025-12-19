@@ -24,22 +24,13 @@ import DataCapturing
  The main view of the application, combining an overview of all the captured measurements and control elements to run data capturing.
  */
 struct MeasurementView: View {
-    /// The current application state.
-    //@EnvironmentObject var appState: ApplicationState
-    /// The authenticator used to login the user. This should contain the currently valid user to login and upload data.
-    // TODO: var authenticator: CredentialsAuthenticator?
     /// The modality selected to capture data.
     @State var selectedModality = Modalities.defaultSelection
     /// If `true` an error message is shown to the user.
     @State var showError = true
     /// The error message to show if `showError` is true.
-    //@State var errorMessage = ""
-    /// If `true` the currently displayed error is dismissed.
-    //var dismiss = false
-    /// This is required to dimiss the view on a non recoverable error.
-    /// More explanation here: https://www.hackingwithswift.com/quick-start/swiftui/how-to-make-a-view-dismiss-itself
-    //@Environment(\.presentationMode) var presentationMode
     @State var viewModel: MeasurementViewModel
+    @Binding var isLoggedIn: Bool
 
     var body: some View {
         VStack {
@@ -110,9 +101,9 @@ struct MeasurementView: View {
 
                 ToolbarItem(placement: .cancellationAction) {
                     Button(action: {
-                        DispatchQueue.main.async {
-//                            appState.isLoggedIn = false
-//                            appState.settings.authenticatedServerUrl = nil
+                        Task {
+                            await viewModel.logout()
+                            onLoggedOut()
                         }
                     }) {
                         Image(systemName: "power.circle")
@@ -126,6 +117,10 @@ struct MeasurementView: View {
             })
     }
 
+    @MainActor
+    private func onLoggedOut() {
+        isLoggedIn = false
+    }
     /// Handles calling delete on one or more measurements.
     private func deleteMeasurements(at offsets: IndexSet) {
         viewModel.deleteMeasurements(at: offsets)
@@ -133,14 +128,22 @@ struct MeasurementView: View {
 }
 
 #Preview("Default View") {
-    MeasurementView(viewModel: MockMeasurementViewModel())
-        .tint(Color("Cyface-Green"))
+    @Previewable @State var isLoggedIn = true
+
+    MeasurementView(
+        viewModel: MockMeasurementViewModel(),
+        isLoggedIn: $isLoggedIn
+    )
+    .tint(Color("Cyface-Green"))
 }
 
 #Preview("Measurment View with Error Dialog") {
-    MeasurementView(viewModel: MockMeasurementViewModel(
+    @Previewable @State var isLoggedIn = true
+
+    MeasurementView(
+        viewModel: MockMeasurementViewModel(
         showError: true,
-        error: MeasurementError.noCurrentMeasurement
-    ))
+        error: MeasurementError.isPaused
+    ), isLoggedIn: $isLoggedIn)
     .tint(Color("Cyface-Green"))
 }
