@@ -16,11 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for iOS. If not, see <http://www.gnu.org/licenses/>.
  */
+import Foundation
 
 /// The MVVM view model for a single list entry in the list of measurements.
 ///
 /// It contains the information shown on screen as well as the current synchronization state, to show appropriate icons.
-struct MeasurementListEntryViewModel: Identifiable {
+@Observable
+class MeasurementListEntryViewModel: Identifiable {
     var syncStatus = SyncStatus.local
     /// The distance of the displayed measurement. This is used to display the length of a measurement for easier disambiguation.
     var distance = 0.0
@@ -33,24 +35,23 @@ struct MeasurementListEntryViewModel: Identifiable {
     /// The device wide unique identifier of the measurement to display.
     let id: UInt64
 
-    enum SyncStatus {
-        case local
-        case synchronizing
-        case synchronized
-        case failed
+    init(syncStatus: SyncStatus = .local, distance: Double = 0.0, id: UInt64) {
+        self.syncStatus = syncStatus
+        self.distance = distance
+        self.id = id
     }
 
     /// Flag which is `true` if the data synchroniation has failed and `false` otherwise. If it is true the Ui displays an exclamation mark icon and maybe some information about the error.
-    mutating func synchronizationFailed(_ error: Error) {
+    func synchronizationFailed(_ error: Error) {
         self.syncStatus = .failed
     }
 
-    mutating func synchronizationFinishedSuccessfully() {
+    func synchronizationFinishedSuccessfully() {
         self.syncStatus = .synchronized
     }
 
     /// Flag which is `true` if the app is currently synchronizing data and `false` otherwise. This is used to show an acitivity or progress indicator during the upload process.
-    mutating func synchronizationStarted() {
+    func synchronizationStarted() {
         self.syncStatus = .synchronizing
     }
 }

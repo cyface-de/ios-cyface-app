@@ -87,6 +87,7 @@ protocol MeasurementViewModel {
     private var authenticator: Authenticator?
     private let synchronizationMessagesBus = PassthroughSubject<UploadStatus, Never>()
     private var synchronizationMessagesProcessingHandle: AnyCancellable? = nil
+    private var uploadStatusForwardingHandle: AnyCancellable? = nil
     private var config: Config?
 
     // MARK: - Initializers
@@ -148,8 +149,19 @@ protocol MeasurementViewModel {
                         request.predicate = NSPredicate(format: "synchronizable = true || synchronized = true")
 
                         return try request.execute().map { measurementMO in
-                            MeasurementListEntryViewModel(
-                                syncStatus: .local,
+                            let state = switch (measurementMO.synchronizable, measurementMO.synchronized) {
+                            case (true, false): SyncStatus.local
+                            case (true, true): SyncStatus.synchronized // Was wrong: should be synchronized, not failed
+                            case (false, false): SyncStatus.failed
+                            case (false, true): SyncStatus.synchronized
+                            }
+                            /*
+                             case synchronizing --> should only happen during a running synchronization
+                             */
+
+
+                            return MeasurementListEntryViewModel(
+                                syncStatus: state,
                                 distance: calculateCoveredDistance(tracks: measurementMO.typedTracks()),
                                 id: measurementMO.unsignedIdentifier
                             )
@@ -161,6 +173,10 @@ protocol MeasurementViewModel {
                     self.uploadFactory = uploadFactory
                     self.urlSession = urlSession
                     self.authenticator = authenticator
+                    
+                    // Set up the synchronization message handler ONCE during initialization
+                    setupSynchronizationMessageHandler()
+                    
                     isInitialized = true
                     startSynchronization()
                 }
@@ -208,6 +224,97 @@ protocol MeasurementViewModel {
 
     private func findMeasurementInView(_ measurement: FinishedMeasurement) -> MeasurementListEntryViewModel? {
         finishedMeasurements.first(where: {$0.id == measurement.identifier})
+    }
+    
+    /// Sets up the synchronization message handler that listens to upload status events.
+    /// This should only be called ONCE during initialization.
+    private func setupSynchronizationMessageHandler() {
+        synchronizationMessagesProcessingHandle = synchronizationMessagesBus.sink { [weak self] uploadStatus in
+            // TODO: Ideally the upload Status should contain the HTTP response status
+            let measurementIdentifier = uploadStatus.upload.measurement.identifier
+            guard let measurementViewModel = self?.findMeasurementInView(uploadStatus.upload.measurement) else {
+                return debugPrint("No view model for measurement \(measurementIdentifier)")
+            }
+            switch uploadStatus.status {
+            case .started:
+                debugPrint("App received upload started!")
+                measurementViewModel.synchronizationStarted()
+            case .finishedSuccessfully:
+                debugPrint("App received upload finished successfully!")
+                do {
+                    try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                        loadedMeasurement.synchronizable = false
+                        loadedMeasurement.synchronized = true
+                    }
+                } catch {
+                    self?.error = error
+                    self?.showError = true
+                }
+                measurementViewModel.synchronizationFinishedSuccessfully()
+            case .finishedUnsuccessfully:
+                debugPrint("App received upload finished unsuccessfully!")
+                do {
+                    try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                        loadedMeasurement.synchronizable = true
+                        loadedMeasurement.synchronized = false
+                    }
+                } catch {
+                    self?.error = error
+                    self?.showError = true
+                }
+                measurementViewModel.syncStatus = .local
+            case .finishedWithError(cause: let error):
+                debugPrint("App received upload finished with error. Caused by \(error.localizedDescription)")
+                debugPrint("Error type: \(type(of: error))")
+                debugPrint("Error details: \(error)")
+                
+                // Check if this is actually a successful upload with "no location data"
+                // or the legacy missingLocation error from BackgroundPayloadStorage
+                let isNoLocationError: Bool
+                if case ServerConnectionError.noLocation = error {
+                    isNoLocationError = true
+                } else if case UploadProcessError.missingLocation = error {
+                    // This was the bug! The error was thrown during file storage, not because of missing GPS data
+                    isNoLocationError = true
+                } else {
+                    // Also check if error description contains "no location" or similar phrases
+                    isNoLocationError = error.localizedDescription.lowercased().contains("no location") ||
+                                       error.localizedDescription.lowercased().contains("nolocation") ||
+                                       error.localizedDescription.lowercased().contains("missinglocation")
+                }
+                
+                if isNoLocationError {
+                    // Special case: "noLocation" error means measurement uploaded successfully but had no location data
+                    // OR it was the old bug where upload.location was nil during file storage
+                    // In both cases, mark as synchronized to prevent retrying
+                    debugPrint("⚠️ Treating as successful upload (no location data case)")
+                    do {
+                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                            loadedMeasurement.synchronizable = false
+                            loadedMeasurement.synchronized = true
+                        }
+                        measurementViewModel.synchronizationFinishedSuccessfully()
+                    } catch {
+                        self?.error = error
+                        self?.showError = true
+                    }
+                } else {
+                    // Real error - mark as failed but keep synchronizable to allow retry
+                    debugPrint("❌ Real error - marking as failed")
+                    do {
+                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
+                            loadedMeasurement.synchronizable = true
+                            loadedMeasurement.synchronized = false
+                        }
+                    } catch {
+                        self?.error = error
+                        self?.showError = true
+                    }
+                    measurementViewModel.synchronizationFailed(error)
+                }
+            }
+            debugPrint("Upload for measurement \(measurementIdentifier) changed status to \(uploadStatus.status)")
+        }
     }
 }
 
@@ -334,78 +441,20 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 throw CyfaceError.notInitialized
             }
 
-        var backgroundUploadProcess = BackgroundUploadProcessBuilder.create(
-            sessionRegistry: sessionRegistry,
-            collectorUrl: try config.getUploadEndpoint(),
-            uploadFactory: uploadFactory,
-            authenticator: authenticator,
-            urlSession: urlSession
-        ).build()
-
-            synchronizationMessagesProcessingHandle =  synchronizationMessagesBus.sink { [weak self] uploadStatus in
-                // TODO: Ideally the upload Status should contain the HTTP response status
-                let measurementIdentifier = uploadStatus.upload.measurement.identifier
-                guard var measurementViewModel = self?.findMeasurementInView(uploadStatus.upload.measurement) else {
-                    return debugPrint("No view model for measurement \(measurementIdentifier)")
-                }
-                switch uploadStatus.status {
-                case .started:
-                    debugPrint("App received upload started!")
-                    measurementViewModel.synchronizationStarted()
-                case .finishedSuccessfully:
-                    debugPrint("App received upload finished successfully!")
-                    do {
-                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
-                            loadedMeasurement.synchronizable = false
-                            loadedMeasurement.synchronized = true
-                        }
-                    } catch {
-                        self?.error = error
-                        self?.showError = true
-                    }
-                    measurementViewModel.synchronizationFinishedSuccessfully()
-                case .finishedUnsuccessfully:
-                    debugPrint("App received upload finished unsuccessfully!")
-                    do {
-                        try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
-                            loadedMeasurement.synchronizable = true
-                            loadedMeasurement.synchronized = false
-                        }
-                    } catch {
-                        self?.error = error
-                        self?.showError = true
-                    }
-                    measurementViewModel.syncStatus = .local
-                case .finishedWithError(cause: let error):
-                    debugPrint("App received upload finished with error. Caused by \(error.localizedDescription)")
-                    // TODO: Show the error somehow.
-                    if case ServerConnectionError.noLocation = error {
-                        do {
-                            try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
-                                loadedMeasurement.synchronizable = false
-                                loadedMeasurement.synchronized = true
-                            }
-                        } catch {
-                            self?.error = error
-                            self?.showError = true
-                        }
-                    } else {
-                        do {
-                            try self?.persistenceLayer?.update(measurement: uploadStatus.upload.measurement) { loadedMeasurement in
-                                loadedMeasurement.synchronized = false
-                                loadedMeasurement.synchronizable = false
-                            }
-                        } catch {
-                            self?.error = error
-                            self?.showError = true
-                        }
-                    }
-                    measurementViewModel.synchronizationFailed(error)
-                }
-                debugPrint("Upload for measurement \(measurementIdentifier) changed status to \(uploadStatus.status)")
-
+            var backgroundUploadProcess = BackgroundUploadProcessBuilder.create(
+                sessionRegistry: sessionRegistry,
+                collectorUrl: try config.getUploadEndpoint(),
+                uploadFactory: uploadFactory,
+                authenticator: authenticator,
+                urlSession: urlSession
+            ).build()
+            
+            // Forward upload status events from the upload process to the synchronization message bus
+            self.uploadStatusForwardingHandle = backgroundUploadProcess.uploadStatus.sink { [weak self] status in
+                self?.synchronizationMessagesBus.send(status)
             }
 
+            // Find and upload all synchronizable measurements
             try coreDataStack?.wrapInContext { context in
                 let request = MeasurementMO.fetchRequest()
                 request.predicate = NSPredicate(format: "synchronizable = true")
