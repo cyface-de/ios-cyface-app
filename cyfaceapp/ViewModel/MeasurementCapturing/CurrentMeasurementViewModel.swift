@@ -142,7 +142,7 @@ protocol CurrentMeasurementViewModel {
                     
                 case .capturedLocation(let location):
                     // Update speed (convert from m/s to km/h)
-                    self.speed = String(format: "%.2f km/h", location.speed * 3.6)
+                    self.speed = String(format: "%.2f km/h", (location.speed > 0 ? location.speed : 0) * 3.6)
                     self.latitude = String(format: "%.6f", location.latitude)
                     self.longitude = String(format: "%.6f", location.longitude)
                     
