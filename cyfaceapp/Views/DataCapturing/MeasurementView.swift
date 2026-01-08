@@ -24,8 +24,6 @@ import DataCapturing
  The main view of the application, combining an overview of all the captured measurements and control elements to run data capturing.
  */
 struct MeasurementView: View {
-    /// The modality selected to capture data.
-    @State var selectedModality = Modalities.defaultSelection
     /// If `true` an error message is shown to the user.
     @State var showError = true
     /// The error message to show if `showError` is true.
@@ -46,7 +44,7 @@ struct MeasurementView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ModalitySelectorView(selectedModality: $selectedModality)
+            ModalitySelectorView(modalitySelectorViewModel: viewModel.modalitySelectorVM)
 
             HStack {
                 Button(action: {

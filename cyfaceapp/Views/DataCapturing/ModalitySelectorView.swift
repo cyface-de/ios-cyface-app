@@ -21,15 +21,13 @@ import SwiftUI
 
 /**
  A picker used to select the current modality for the data measurement.
-
- - author: Klemens Muthmann
- - version: 1.0.0
  */
 struct ModalitySelectorView: View {
-    @Binding var selectedModality: Modalities
+    //@Binding var selectedModality: Modalities
+    @State var modalitySelectorViewModel: ModalitySelectorViewModel
 
     var body: some View {
-        Picker("Modality", selection: $selectedModality) {
+        Picker("Modality", selection: $modalitySelectorViewModel.selectedModality) {
             Text(Modalities.bicycle.uiValue).tag(Modalities.bicycle)
             Text(Modalities.car.uiValue).tag(Modalities.car)
             Text(Modalities.walking.uiValue).tag(Modalities.walking)
@@ -39,8 +37,8 @@ struct ModalitySelectorView: View {
     }
 }
 
-struct ModalitySelectorView_Previews: PreviewProvider {
-    static var previews: some View {
-        ModalitySelectorView(selectedModality: .constant(Modalities.defaultSelection))
-    }
+#Preview {
+    ModalitySelectorView(
+        modalitySelectorViewModel: ProductionModalitySelectorViewModel(selectedModality: Modalities.defaultSelection)
+    )
 }

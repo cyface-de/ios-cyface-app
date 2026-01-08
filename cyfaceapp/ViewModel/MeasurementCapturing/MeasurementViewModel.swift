@@ -31,6 +31,7 @@ protocol MeasurementViewModel {
     var error: Swift.Error? { get }
     var isInitialized: Bool { get }
     var finishedMeasurements: [MeasurementListEntryViewModel] { get set }
+    var modalitySelectorVM: ModalitySelectorViewModel { get }
 
     // MARK: - Methods
     func start()
@@ -58,6 +59,7 @@ protocol MeasurementViewModel {
     var error: Swift.Error? = nil
     var isInitialized = false
     var finishedMeasurements = [MeasurementListEntryViewModel]()
+    var modalitySelectorVM: ModalitySelectorViewModel
 
     private var currentMeasurement: DataCapturing.Measurement?
     private var currentMeasurementVM: ProductionCurrentMeasurementViewModel?
@@ -92,6 +94,8 @@ protocol MeasurementViewModel {
 
     // MARK: - Initializers
     init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
+        // TODO Load previous state.
+        modalitySelectorVM = ProductionModalitySelectorViewModel(selectedModality: Modalities.defaultSelection)
         do {
             let config = try Config.load()
             let authenticator = OAuthAuthenticator(
@@ -331,7 +335,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
         }
         
         do {
-            // Wenn bereits pausiert, nur resume aufrufen
+            // Call only resume, if already paused.
             if isPaused, let existingMeasurement = currentMeasurement {
                 try existingMeasurement.resume()
                 isCurrentlyCapturing = true
@@ -344,17 +348,18 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                 sensorCapturer: sensorCapturer,
                 locationCapturer: locationCapturer
             )
+
             self.currentMeasurement = currentMeasurement
-            
+
             // WICHTIG: CurrentMeasurementViewModel MUSS vor dem start() Aufruf erstellt werden,
             // damit es das .started Event empfangen kann!
             let viewModel = ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
             self.currentMeasurementVM = viewModel
+            self.modalitySelectorVM.currentMeasurement = currentMeasurement
 
             // TODO: Use this to recreate a measurement paused in the background during app start.
             let storage = CapturedCoreDataStorage(coreDataStack, 10, try DefaultSensorValueFileFactory())
-            // TODO: Returns a measurementIdentifier. Do I need this for something?
-            let measurementId = try storage.subscribe(to: currentMeasurement, Modalities.bicycle.dbValue, {[weak self] databaseIdentifier in
+            let measurementId = try storage.subscribe(to: currentMeasurement, self._modalitySelectorVM.selectedModality.dbValue, {[weak self] databaseIdentifier in
                 do {
                     try self?.onFinishedMeasurement(databaseIdentifier)
                 } catch {
@@ -389,7 +394,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
                     }
                 }
             
-            // Neues Measurement starten
+            // Start new Measurement
             try currentMeasurement.start()
             isCurrentlyCapturing = true
             isPaused = false

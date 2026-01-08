@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Cyface GmbH
+ * Copyright 2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -81,6 +81,7 @@ class MockAuthenticator: Authenticator {
     var showError: Bool
     var error: Swift.Error?
     var isLoggedIn: Bool
+    let modalitySelectorVM: any ModalitySelectorViewModel = MockModalitySelectorViewModel()
 
     init(
         isCurrentlyCapturing: Bool = false,
@@ -131,4 +132,12 @@ class MockAuthenticator: Authenticator {
     func logout() async {
         isLoggedIn = false
     }
+}
+
+@MainActor
+@Observable
+class MockModalitySelectorViewModel: ModalitySelectorViewModel {
+    var selectedModality: Modalities = Modalities.defaultSelection
+
+    var currentMeasurement: (any DataCapturing.Measurement)?
 }
