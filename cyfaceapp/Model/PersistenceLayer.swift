@@ -44,4 +44,20 @@ class PersistenceLayer {
             return try execute(loadedMeasurement)
         }
     }
+
+    /// Delete a Measurement from the database.
+    func delete(measurementIdentifiedBy: UInt64) throws {
+        try coreDataStack.wrapInContext { context in
+            let request = MeasurementMO.fetchRequest()
+            request.predicate = NSPredicate(format: "identifier=%@", NSNumber(value: measurementIdentifiedBy))
+            request.fetchLimit = 1
+
+            guard let loadedMeasurement = try request.execute().first else {
+                fatalError("Tried to delete a measurement that doesn't exist")
+            }
+            
+            context.delete(loadedMeasurement)
+            try context.save()
+        }
+    }
 }

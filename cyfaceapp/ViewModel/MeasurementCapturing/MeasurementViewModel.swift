@@ -479,8 +479,17 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
         }
     }
 
-    func deleteMeasurements(at: IndexSet) {
-        // TODO: Implement Delete
+    func deleteMeasurements(at offsets: IndexSet) {
+        do {
+            for index in offsets {
+                let measurement = finishedMeasurements[index]
+                try persistenceLayer?.delete(measurementIdentifiedBy: measurement.id)
+            }
+            finishedMeasurements.remove(atOffsets: offsets)
+        } catch {
+            self.error = error
+            self.showError = true
+        }
     }
 
     func currentMeasurementViewModel() -> CurrentMeasurementViewModel {
