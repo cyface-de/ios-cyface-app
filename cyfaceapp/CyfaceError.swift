@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Cyface GmbH
+ * Copyright 2025-2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -23,6 +23,7 @@ enum CyfaceError: Error {
     case noSuchMeasurement(identifier: UInt64)
     case invalidURL(url: String)
     case authenticatorNotInitialized
+    case unableToSubscribeToUpdates
 }
 
 extension CyfaceError: LocalizedError {
@@ -36,6 +37,8 @@ extension CyfaceError: LocalizedError {
             return NSLocalizedString("de.cyface.app.error.invalidurl", comment: "An invalid URL was provided to the application.")
         case .authenticatorNotInitialized:
             return NSLocalizedString("de.cyface.app.error.authenticatornotinitialized", comment: "The authenticator was not initialized and thus authentication is not possible. This should not happen, if the app was properly implemented.")
+        case .unableToSubscribeToUpdates:
+            return NSLocalizedString("de.cyface.app.error.unabletosubscribetoupdates", comment: "The application was unable to subscribe to update on the running measurement!")
         }
     }
 }

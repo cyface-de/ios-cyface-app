@@ -96,62 +96,25 @@ protocol CurrentMeasurementViewModel {
         self.latitude = latitude
         self.longitude = longitude
 
-        // Subscribe to measurement events from both sensor and location capturers
-        self.measurementEventsSubscription = measurement.events
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] message in
-                guard let self = self else { return }
-                
-                switch message {
-                case .started(let timestamp):
-                    self.startTime = timestamp
-                    self.accumulatedDuration = 0 // Reset bei neuem Start
-                    self.startDurationTimer()
-                    
-                case .resumed(let timestamp):
-                    self.startTime = timestamp
-                    // accumulatedDuration behalten - wird bei Pause aktualisiert
-                    self.startDurationTimer()
-                    
-                case .paused:
-                    // Akkumuliere die verstrichene Zeit vor dem Stoppen des Timers
-                    if let startTime = self.startTime {
-                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
-                    }
-                    self.stopDurationTimer()
-                    // Duration-Anzeige mit akkumulierter Zeit aktualisieren
-                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
-                        self.duration = formattedDuration
-                    }
-                    
-                case .stopped:
-                    self.stopDurationTimer()
-                    // Bei Stop die finale Duration speichern
-                    if let startTime = self.startTime {
-                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
-                    }
-                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
-                        self.duration = formattedDuration
-                    }
-                    
-                case .hasFix:
-                    self.hasFix = "mappin"
-                    
-                case .fixLost:
-                    self.hasFix = "mappin.slash"
-                    
-                case .capturedLocation(let location):
-                    // Update speed (convert from m/s to km/h)
-                    self.speed = String(format: "%.2f km/h", (location.speed > 0 ? location.speed : 0) * 3.6)
-                    self.latitude = String(format: "%.6f", location.latitude)
-                    self.longitude = String(format: "%.6f", location.longitude)
-                    
-                default:
-                    break
-                }
-            }
+        subscribeToEventsFrom(measurement: measurement)
     }
-    
+
+    /// This constructor is required to reinitialize the app if started from a previously paused state.
+    convenience init(measurement: DataCapturing.Measurement, distance: Double, startTime: Date, accumulatedDuration: TimeInterval, latitude: Double, longitude: Double) {
+        self.init(
+            measurement: measurement,
+            distance: Self.format(distanceInMeters: distance),
+            latitude: Self.format(coordinate: latitude),
+            longitude: Self.format(coordinate: longitude)
+        )
+
+        if let formattedDuration = timeFormatter.string(from: accumulatedDuration) {
+            self.duration = formattedDuration
+        }
+        self.startTime = startTime
+        self.accumulatedDuration = accumulatedDuration
+    }
+
     deinit {
         stopDurationTimer()
     }
@@ -185,82 +148,79 @@ protocol CurrentMeasurementViewModel {
             self.duration = formattedDuration
         }
     }
-    
+
+    /// Subscribe to measurement events from both sensor and location capturers
+    private func subscribeToEventsFrom(measurement: DataCapturing.Measurement) {
+        self.measurementEventsSubscription = measurement.events
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
+                guard let self = self else { return }
+
+                switch message {
+                case .started(let timestamp):
+                    self.startTime = timestamp
+                    self.accumulatedDuration = 0 // Reset bei neuem Start
+                    self.startDurationTimer()
+
+                case .resumed(let timestamp):
+                    self.startTime = timestamp
+                    // accumulatedDuration behalten - wird bei Pause aktualisiert
+                    self.startDurationTimer()
+
+                case .paused:
+                    // Akkumuliere die verstrichene Zeit vor dem Stoppen des Timers
+                    if let startTime = self.startTime {
+                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
+                    }
+                    self.stopDurationTimer()
+                    // Duration-Anzeige mit akkumulierter Zeit aktualisieren
+                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
+                        self.duration = formattedDuration
+                    }
+
+                case .stopped:
+                    self.stopDurationTimer()
+                    // Bei Stop die finale Duration speichern
+                    if let startTime = self.startTime {
+                        self.accumulatedDuration += Date().timeIntervalSince(startTime)
+                    }
+                    if let formattedDuration = self.timeFormatter.string(from: self.accumulatedDuration) {
+                        self.duration = formattedDuration
+                    }
+
+                case .hasFix:
+                    self.hasFix = "mappin"
+
+                case .fixLost:
+                    self.hasFix = "mappin.slash"
+
+                case .capturedLocation(let location):
+                    // Update speed (convert from m/s to km/h)
+                    self.speed = String(format: "%.2f km/h", (location.speed > 0 ? location.speed : 0) * 3.6)
+                    self.latitude = Self.format(coordinate: location.latitude)
+                    self.longitude = Self.format(coordinate: location.longitude)
+
+                default:
+                    break
+                }
+            }
+    }
+
+    private static func format(distanceInMeters: Double) -> String {
+        return distanceInMeters < 1_000
+        ? String(format: "%.2f m", distanceInMeters)
+        : String(format: "%.2f km", distanceInMeters / 1_000)
+    }
+
+    private static func format(coordinate: Double) -> String {
+        return String(format: "%.6f", coordinate)
+    }
+
     /// Update the distance display
     ///
     /// This should be called from the measurement view model when distance changes
     /// - Parameter distanceInMeters: The distance in meters
     func updateDistance(_ distanceInMeters: Double) {
-        self.distance = distanceInMeters < 1_000 
-            ? String(format: "%.2f m", distanceInMeters) 
-            : String(format: "%.2f km", distanceInMeters / 1_000)
+        self.distance = Self.format(distanceInMeters: distanceInMeters)
     }
 }
-
-/* TODO: extension CurrentMeasurementViewModel: CyfaceEventHandler {
-
-    /// Formatter used to display the duration of the current measurement.
-    private var timeFormatter: DateComponentsFormatter {
-        let formatter = DateComponentsFormatter()
-
-        formatter.unitsStyle = .abbreviated
-        formatter.allowedUnits = [.hour, .minute, .second]
-        return formatter
-    }
-
-    /// The handler for Cyface `DataCapturingEvent` instances.
-    ///
-    /// This updates the current measurement view on each new geographical location.
-    /// It also refreshes the geographical location fix display.
-    func handle(event: DataCapturingEvent, status: Status) {
-        switch status {
-        case .success:
-            switch event {
-            case .geoLocationFixAcquired:
-                if let hasFix = UIImage(named: "gps-available") {
-                    DispatchQueue.main.async {
-                        self.hasFix = hasFix
-                    }
-                }
-            case .geoLocationFixLost:
-                if let hasFix = UIImage(named: "gps-not-available") {
-                    DispatchQueue.main.async {
-                        self.hasFix = hasFix
-                    }
-                }
-            case .geoLocationAcquired(position: let location):
-                let persistenceLayer = PersistenceLayer(onManager: coreDateStack)
-                do {
-                    if let measurementIdentifier = measurementIdentifier {
-                        let measurement = try persistenceLayer.load(measurementIdentifiedBy: measurementIdentifier)
-                        let distanceInMeters = measurement.trackLength
-
-                        if let formattedDuration = timeFormatter.string(from: abs(location.timestamp.timeIntervalSince(Date(timeIntervalSince1970: Double(measurement.timestamp) / 1_000.0)))) {
-                            DispatchQueue.main.async {
-                                self.duration = formattedDuration
-                            }
-                        }
-
-                        DispatchQueue.main.async {
-                            self.speed = String(format: "%.2f km/s", location.speed / 3.6)
-                            self.latitude = String(format: "%.2f", location.latitude)
-                            self.longitude = String(format: "%.2f", location.longitude)
-
-                            self.distance = distanceInMeters < 1_000 ? String(format: "%.2f m", distanceInMeters) : String(format: "%.2f km", distanceInMeters / 1_000)
-                        }
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        self.hasError = true
-                        self.errorMessage = error.localizedDescription
-                    }
-                }
-            default:
-                break
-            }
-        default:
-            break
-        }
-    }
-
-}*/

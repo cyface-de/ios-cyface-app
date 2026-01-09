@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Cyface GmbH
+ * Copyright 2025-2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -51,7 +51,6 @@ protocol MeasurementViewModel {
 
 @MainActor
 @Observable class ProductionMeasurementViewModel {
-    // TODO: Initialise correctly if measurement has been running in the background
     // MARK: - Properties
     var isCurrentlyCapturing = false
     var isPaused = false
@@ -83,6 +82,7 @@ protocol MeasurementViewModel {
     })
     private var persistenceLayer: PersistenceLayer?
     private var coreDataStack: CoreDataStack?
+    private var storage: CapturedDataStorage?
     private var sessionRegistry: SessionRegistry?
     private var uploadFactory: UploadFactory?
     private var urlSession: URLSession?
@@ -94,9 +94,16 @@ protocol MeasurementViewModel {
 
     // MARK: - Initializers
     init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
-        // TODO Load previous state.
         modalitySelectorVM = ProductionModalitySelectorViewModel(selectedModality: Modalities.defaultSelection)
         do {
+            // Persistence Properties
+            let coreDataStack = try CoreDataStack()
+            self.persistenceLayer = PersistenceLayer(coreDataStack)
+            let sensorValueFileFactory = try DefaultSensorValueFileFactory()
+            self.coreDataStack = coreDataStack
+            self.storage = CapturedCoreDataStorage(coreDataStack, 10, sensorValueFileFactory)
+
+            // Data Upload Properties
             let config = try Config.load()
             let authenticator = OAuthAuthenticator(
                 issuer: try config.getIssuerUri(),
@@ -105,10 +112,6 @@ protocol MeasurementViewModel {
                 clientId: config.clientId,
                 authStateKey: CyfaceApp.authStateKey
             )
-            let coreDataStack = try CoreDataStack()
-            self.persistenceLayer = PersistenceLayer(coreDataStack)
-            let sensorValueFileFactory = try DefaultSensorValueFileFactory()
-            self.coreDataStack = coreDataStack
             let uploadFactory = CoreDataBackedUploadFactory(dataStoreStack: coreDataStack)
             let sessionRegistry = PersistentSessionRegistry(dataStoreStack: coreDataStack, uploadFactory: uploadFactory)
             let backgroundEventHandler = BackgroundEventHandler(
@@ -143,11 +146,40 @@ protocol MeasurementViewModel {
             let urlSession = URLSession(configuration: urlSessionConfig, delegate: backgroundProcessDelegate, delegateQueue: nil)
             backgroundEventHandler.discretionaryUrlSession = urlSession
 
+            // Initialize everything
             Task {
                 if let coreDataStack = self.coreDataStack {
                     debugPrint("Calling Setup")
                     try await coreDataStack.setup()
                     debugPrint("Called Setup")
+
+                    // Load a previously paused measurement
+                    if let pausedMeasurement = try storage?.pausedMeasurement(sensorCapturer: sensorCapturer, locationCapturer: locationCapturer) { [weak self] databaseIdentifier in
+                        self?.onFinishedMeasurement(databaseIdentifier)
+                    } {
+                        try persistenceLayer?.on(measurementIdentifiedBy: pausedMeasurement.1) { measurement in
+                            let distance = persistenceLayer?.calculateCoveredDistance(measurement: measurement) ?? 0.0
+                            let startTime = measurement.time ?? Date.now
+                            let duration = persistenceLayer?.duration(measurement: measurement) ?? 0.0
+                            let lastLocation = measurement.typedTracks().last?.typedLocations().last
+                            let latitude = lastLocation?.lat ?? 0
+                            let longitude = lastLocation?.lon ?? 0
+                            self.currentMeasurementVM = ProductionCurrentMeasurementViewModel(
+                                measurement: pausedMeasurement.0,
+                                distance: distance,
+                                startTime: startTime,
+                                accumulatedDuration: duration,
+                                latitude: latitude,
+                                longitude: longitude
+                            )
+                        }
+                        self.isPaused = true
+                        self.currentMeasurement = pausedMeasurement.0
+                        self.modalitySelectorVM.currentMeasurement = currentMeasurement
+                        subscribeToEvents(from: pausedMeasurement.1)
+                    }
+
+                    // Load the list of previously finished measurements
                     self.finishedMeasurements.append(contentsOf: try coreDataStack.wrapInContextReturn { context in
                         let request = MeasurementMO.fetchRequest()
                         request.predicate = NSPredicate(format: "synchronizable = true || synchronized = true")
@@ -166,7 +198,7 @@ protocol MeasurementViewModel {
 
                             return MeasurementListEntryViewModel(
                                 syncStatus: state,
-                                distance: calculateCoveredDistance(tracks: measurementMO.typedTracks()),
+                                distance: persistenceLayer?.calculateCoveredDistance(measurement: measurementMO) ?? 0.0,
                                 id: measurementMO.unsignedIdentifier
                             )
                         }
@@ -193,37 +225,26 @@ protocol MeasurementViewModel {
 
     // MARK: - Private Methods
     /// Called if the measurement identified by the provided identifier has finished data capturing.
-    private func onFinishedMeasurement(_ databaseIdentifier: UInt64) throws {
+    private func onFinishedMeasurement(_ databaseIdentifier: UInt64) {
         os_log("Cleanup after measurement has finished", log: OSLog.measurement, type: .debug)
         self.isCurrentlyCapturing = false
         self.isPaused = false
         self.currentMeasurement = nil
         self.currentMeasurementVM = nil
         self.locationUpdateSubscription = nil
-        
-        let distance = try persistenceLayer?.on(measurementIdentifiedBy: databaseIdentifier) { measurement in
-            calculateCoveredDistance(tracks: measurement.typedTracks())
+
+        do {
+            let distance = try persistenceLayer?.on(measurementIdentifiedBy: databaseIdentifier) { measurement in
+                persistenceLayer?.calculateCoveredDistance(measurement: measurement)
+            }
+
+            finishedMeasurements.append(MeasurementListEntryViewModel(distance: distance ?? 0.0, id: databaseIdentifier))
+        } catch {
+            self.error = error
+            self.showError = true
         }
 
-        finishedMeasurements.append(MeasurementListEntryViewModel(distance: distance ?? 0.0, id: databaseIdentifier))
-    }
-
-    private func calculateCoveredDistance(tracks: [TrackMO]) -> Double {
-            return tracks
-                .map { track in
-                    var trackLength = 0.0
-                    var prevLocation: GeoLocationMO? = nil
-                    for location in track.typedLocations() {
-                        if let prevLocation = prevLocation {
-                            trackLength += location.distance(to: prevLocation)
-                        }
-                        prevLocation = location
-                    }
-                    return trackLength
-                }
-                .reduce(0.0) { accumulator, next in
-                    accumulator + next
-                }
+        self.storage?.unsubscribe()
     }
 
     private func findMeasurementInView(_ measurement: FinishedMeasurement) -> MeasurementListEntryViewModel? {
@@ -328,74 +349,34 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
     // MARK: - Methods
     func start() {
         debugPrint("Start Data Capturing")
-        guard let coreDataStack = self.coreDataStack else {
-            self.error = CyfaceError.notInitialized
-            self.showError = true
-            return
-        }
-        
         do {
             // Call only resume, if already paused.
             if isPaused, let existingMeasurement = currentMeasurement {
                 try existingMeasurement.resume()
-                isCurrentlyCapturing = true
-                isPaused = false
-                return
+            } else {
+                // Neues Measurement erstellen
+                let currentMeasurement = DataCapturing.MeasurementImpl(
+                    sensorCapturer: sensorCapturer,
+                    locationCapturer: locationCapturer
+                )
+
+                self.currentMeasurement = currentMeasurement
+
+                // TODO: I need to call this here (before start()) so it can receive the start event. However is seems weird, that the return is not required. Is this some kind of antipattern?
+                _ = currentMeasurementViewModel()
+                self.modalitySelectorVM.currentMeasurement = currentMeasurement
+
+
+                guard let measurementId = try storage?.subscribe(to: currentMeasurement, self._modalitySelectorVM.selectedModality.dbValue, {[weak self] databaseIdentifier in
+                    self?.onFinishedMeasurement(databaseIdentifier)
+                }) else {
+                    throw CyfaceError.unableToSubscribeToUpdates
+                }
+
+                subscribeToEvents(from: measurementId)
+                // Start new Measurement
+                try currentMeasurement.start()
             }
-            
-            // Neues Measurement erstellen
-            let currentMeasurement = DataCapturing.MeasurementImpl(
-                sensorCapturer: sensorCapturer,
-                locationCapturer: locationCapturer
-            )
-
-            self.currentMeasurement = currentMeasurement
-
-            // WICHTIG: CurrentMeasurementViewModel MUSS vor dem start() Aufruf erstellt werden,
-            // damit es das .started Event empfangen kann!
-            let viewModel = ProductionCurrentMeasurementViewModel(measurement: currentMeasurement)
-            self.currentMeasurementVM = viewModel
-            self.modalitySelectorVM.currentMeasurement = currentMeasurement
-
-            // TODO: Use this to recreate a measurement paused in the background during app start.
-            let storage = CapturedCoreDataStorage(coreDataStack, 10, try DefaultSensorValueFileFactory())
-            let measurementId = try storage.subscribe(to: currentMeasurement, self._modalitySelectorVM.selectedModality.dbValue, {[weak self] databaseIdentifier in
-                do {
-                    try self?.onFinishedMeasurement(databaseIdentifier)
-                } catch {
-                    self?.error = error
-                    self?.showError = true
-                }
-                storage.unsubscribe()
-            })
-            
-            // Subscribe to location updates to calculate distance in real-time
-            locationUpdateSubscription = currentMeasurement.events
-                .compactMap { message -> GeoLocation? in
-                    if case .capturedLocation(let location) = message {
-                        return location
-                    }
-                    return nil
-                }
-                .sink { [weak self] location in
-                    guard let self = self,
-                          let persistenceLayer = self.persistenceLayer else { return }
-                    
-                    do {
-                        // Calculate and update the distance
-                        let distance = try persistenceLayer.on(measurementIdentifiedBy: measurementId) { measurement in
-                            self.calculateCoveredDistance(tracks: measurement.typedTracks())
-                        }
-                        
-                        // Update the current measurement view model with the new distance
-                        self.currentMeasurementVM?.updateDistance(distance)
-                    } catch {
-                        os_log(.error, log: .measurement, "Failed to update distance: %{public}@", error.localizedDescription)
-                    }
-                }
-            
-            // Start new Measurement
-            try currentMeasurement.start()
             isCurrentlyCapturing = true
             isPaused = false
         } catch {
@@ -403,7 +384,34 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
             self.showError = true
         }
     }
-    
+
+    private func subscribeToEvents(from measurementIdentifiedBy: UInt64) {
+        // Subscribe to location updates to calculate distance in real-time
+        self.locationUpdateSubscription = currentMeasurement?.events
+            .compactMap { message -> GeoLocation? in
+                if case .capturedLocation(let location) = message {
+                    return location
+                }
+                return nil
+            }
+            .sink { [weak self] location in
+                guard let self = self,
+                      let persistenceLayer = self.persistenceLayer else { return }
+
+                do {
+                    // Calculate and update the distance
+                    let distance = try persistenceLayer.on(measurementIdentifiedBy: measurementIdentifiedBy) { measurement in
+                        persistenceLayer.calculateCoveredDistance(measurement: measurement)
+                    }
+
+                    // Update the current measurement view model with the new distance
+                    self.currentMeasurementVM?.updateDistance(distance)
+                } catch {
+                    os_log(.error, log: .measurement, "Failed to update distance: %{public}@", error.localizedDescription)
+                }
+            }
+    }
+
     func pause() {
         debugPrint("Pause Data Capturing")
         do {

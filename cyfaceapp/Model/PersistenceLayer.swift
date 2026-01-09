@@ -45,6 +45,33 @@ class PersistenceLayer {
         }
     }
 
+    func calculateCoveredDistance(measurement: MeasurementMO) -> Double {
+        let tracks = measurement.typedTracks()
+        return tracks
+            .map { track in
+                var trackLength = 0.0
+                var prevLocation: GeoLocationMO? = nil
+                for location in track.typedLocations() {
+                    if let prevLocation = prevLocation {
+                        trackLength += location.distance(to: prevLocation)
+                    }
+                    prevLocation = location
+                }
+                return trackLength
+            }
+            .reduce(0.0) { accumulator, next in
+                accumulator + next
+            }
+    }
+
+    func duration(measurement: MeasurementMO) -> TimeInterval {
+        measurement.typedTracks().map { track in
+            track.typedLocations().last?.time?.timeIntervalSince(track.typedLocations().first!.time!) ?? 0.0
+        }.reduce(0.0) { (partialResult: TimeInterval, next: TimeInterval) -> TimeInterval in
+            return partialResult + next
+        }
+    }
+
     /// Delete a Measurement from the database.
     func delete(measurementIdentifiedBy: UInt64) throws {
         try coreDataStack.wrapInContext { context in
