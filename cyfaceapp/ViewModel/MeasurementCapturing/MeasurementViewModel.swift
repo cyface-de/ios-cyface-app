@@ -429,6 +429,7 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
         debugPrint("Stop Data Capturing")
         do {
             try currentMeasurement?.stop()
+            startSynchronization()
         } catch {
             self.error = error
             self.showError = true
@@ -437,7 +438,6 @@ extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
 
     func startSynchronization() {
         do {
-            // TODO: Maybe try to setup everything here.
             guard let config = self.config else {
                 throw CyfaceError.notInitialized
             }
