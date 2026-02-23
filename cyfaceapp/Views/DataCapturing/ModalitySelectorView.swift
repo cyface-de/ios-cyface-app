@@ -33,12 +33,13 @@ struct ModalitySelectorView: View {
             Text(Modalities.walking.uiValue).tag(Modalities.walking)
             Text(Modalities.bus.uiValue).tag(Modalities.bus)
             Text(Modalities.train.uiValue).tag(Modalities.train)
-        }.pickerStyle(.segmented)
+        }
+        .pickerStyle(.segmented)
     }
 }
 
 #Preview {
     ModalitySelectorView(
-        modalitySelectorViewModel: ProductionModalitySelectorViewModel(selectedModality: Modalities.defaultSelection)
+        modalitySelectorViewModel: ProductionModalitySelectorViewModel()
     )
 }

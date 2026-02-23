@@ -94,7 +94,8 @@ protocol MeasurementViewModel {
 
     // MARK: - Initializers
     init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
-        modalitySelectorVM = ProductionModalitySelectorViewModel(selectedModality: Modalities.defaultSelection)
+
+        modalitySelectorVM = ProductionModalitySelectorViewModel()
         do {
             // Persistence Properties
             let coreDataStack = try CoreDataStack()
@@ -154,9 +155,9 @@ protocol MeasurementViewModel {
                     debugPrint("Called Setup")
 
                     // Load a previously paused measurement
-                    if let pausedMeasurement = try storage?.pausedMeasurement(sensorCapturer: sensorCapturer, locationCapturer: locationCapturer) { [weak self] databaseIdentifier in
+                    if let pausedMeasurement = try storage?.pausedMeasurement(sensorCapturer: sensorCapturer, locationCapturer: locationCapturer, { [weak self] databaseIdentifier in
                         self?.onFinishedMeasurement(databaseIdentifier)
-                    } {
+                    }) {
                         try persistenceLayer?.on(measurementIdentifiedBy: pausedMeasurement.1) { measurement in
                             let distance = persistenceLayer?.calculateCoveredDistance(measurement: measurement) ?? 0.0
                             let startTime = measurement.time ?? Date.now

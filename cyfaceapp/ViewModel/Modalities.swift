@@ -20,7 +20,7 @@
 import Foundation
 
 /// The different modalities supported, by the Cyface iOS App.
-enum Modalities {
+enum Modalities: String {
     /// Used if the application captures a bicycle ride.
     case bicycle
     /// Used if the application captures a car drive.
