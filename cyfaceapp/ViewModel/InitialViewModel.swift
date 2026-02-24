@@ -44,13 +44,15 @@ import DataCapturing
         do {
             let config = try Config.load()
 
-            self.authenticator = OAuthAuthenticator(
+            let oAuthAuthenticator = OAuthAuthenticator(
                 issuer: try config.getIssuerUri(),
                 redirectUri: try config.getRedirectUri(),
                 apiEndpoint: try config.getApiEndpoint(),
                 clientId: config.clientId,
                 authStateKey: CyfaceApp.authStateKey
             )
+            self.isAuthenticated = oAuthAuthenticator.isLoggedIn
+            self.authenticator = oAuthAuthenticator
         } catch {
             self.error = error
             self.showError = true
