@@ -21,7 +21,7 @@ import OSLog
 
 extension OSLog {
     /// The subsystem to log to should equal our bundle identifier
-    private static var subsystem = Bundle.main.bundleIdentifier!
+    private static let subsystem = Bundle.main.bundleIdentifier!
 
     /// Logs for data capturing events.
     static let capturingEvent = OSLog(subsystem: subsystem, category: "capturing")

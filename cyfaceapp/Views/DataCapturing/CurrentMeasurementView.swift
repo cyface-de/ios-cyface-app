@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 Cyface GmbH
+ * Copyright 2022-2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -18,7 +18,6 @@
  */
 
 import SwiftUI
-import Playgrounds
 
 /// A view showing information about the currently captured measurement.
 ///
@@ -27,11 +26,6 @@ import Playgrounds
 struct CurrentMeasurementView: View {
     /// The view model used to hold the state of the currently captured measurement.
     @State var viewModel: CurrentMeasurementViewModel
-
-    /// Create a new view for the current measurement, with an initial view model.
-    /*init(viewModel: CurrentMeasurementViewModel) {
-        self._viewModel = StateObject(wrappedValue: viewModel)
-    }*/
 
     var body: some View {
         HStack {
@@ -88,11 +82,6 @@ struct CurrentMeasurementView: View {
                 }
             }
         }
-        /*.alert("Error", isPresented: $viewModel.hasError, actions: {
-            // actions
-        }, message: {
-            Text(viewModel.errorMessage ?? "")
-        })*/
     }
 }
 

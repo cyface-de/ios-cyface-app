@@ -41,15 +41,15 @@ enum Modalities: String {
     var uiValue: String {
         switch self {
         case .bicycle:
-            return "Bicycle"
+            return String(localized: "Bicycle")
         case .car:
-            return "Car"
+            return String(localized: "Car")
         case .walking:
-            return "Walking"
+            return String(localized: "Walking")
         case .bus:
-            return "Bus"
+            return String(localized: "Bus")
         case .train:
-            return "Train"
+            return String(localized: "Train")
         }
     }
 

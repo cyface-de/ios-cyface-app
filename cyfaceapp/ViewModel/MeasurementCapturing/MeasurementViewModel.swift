@@ -345,7 +345,7 @@ protocol MeasurementViewModel {
 }
 
 // MARK: - MeasurementViewModel adoption
-extension ProductionMeasurementViewModel: @MainActor MeasurementViewModel {
+extension ProductionMeasurementViewModel: MeasurementViewModel {
 
     // MARK: - Methods
     func start() {

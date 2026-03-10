@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/cyface-de/ios-sensor-library",
       "state" : {
-        "revision" : "0d0a6d4457e1bf81a0444612f13e0ad4f8529ab1",
-        "version" : "14.2.0"
+        "revision" : "4e36b0bab5b78b1a75c90469994c3a143cf6bcb6",
+        "version" : "14.3.1"
       }
     },
     {
