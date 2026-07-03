@@ -154,6 +154,10 @@ jobs:
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          # Monotonically increasing build number so App Store Connect always
+          # sees a higher CFBundleVersion than the previous upload. Overrides
+          # the project's CURRENT_PROJECT_VERSION only for this archive.
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           xcodebuild -scheme "$SCHEME" \
             -archivePath $RUNNER_TEMP/cyfaceapp.xcarchive \
@@ -163,6 +167,7 @@ jobs:
             -authenticationKeyID $APP_STORE_CONNECT_KEY_ID \
             -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
             -allowProvisioningUpdates \
+            CURRENT_PROJECT_VERSION=$BUILD_NUMBER \
             clean archive
 
       - name: Export IPA
