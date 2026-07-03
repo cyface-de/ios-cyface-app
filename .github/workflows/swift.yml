@@ -144,16 +144,25 @@ jobs:
           PLIST
           echo "Using provisioning profile: ${PP_NAME}"
 
+      # Archive with the project's automatic signing. We deliberately do NOT
+      # pass CODE_SIGN_IDENTITY / PROVISIONING_PROFILE_SPECIFIER here: as global
+      # build settings they get applied to the SPM resource-bundle targets too,
+      # which cannot carry a provisioning profile and fail the build. The real
+      # App Store (distribution) signing is applied at the Export step instead,
+      # where ExportOptions.plist scopes it to the de.cyface.app bundle only.
       - name: Build Archive
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -scheme "$SCHEME" \
             -archivePath $RUNNER_TEMP/cyfaceapp.xcarchive \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM=$TEAM_ID \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PP_NAME" \
+            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8 \
+            -authenticationKeyID $APP_STORE_CONNECT_KEY_ID \
+            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
+            -allowProvisioningUpdates \
             clean archive
 
       - name: Export IPA
