@@ -37,9 +37,11 @@ jobs:
             test
 
   # ---------------------------------------------------------------------------
-  # Signed archive + upload to App Store Connect.
-  # Only runs for version tags (v*.*.*) or a manual dispatch — never on PRs,
-  # so fork PRs without secret access don't fail here.
+  # Signed archive + upload to App Store Connect using MANUAL signing.
+  # The Distribution certificate and an App Store provisioning profile are
+  # provided via secrets; no cloud signing is used (the API key only needs the
+  # Developer role, which is sufficient to upload the finished build).
+  # Only runs for version tags (v*.*.*) or a manual dispatch.
   # ---------------------------------------------------------------------------
   release:
     name: Build & Upload to App Store Connect
@@ -79,28 +81,60 @@ jobs:
 
           security list-keychain -d user -s $KEYCHAIN_PATH
 
+      - name: Install the App Store Provisioning Profile
+        env:
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+        run: |
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+
+          # Decode the provisioning profile from secrets
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          # Extract the profile's UUID and Name from its embedded plist
+          security cms -D -i $PP_PATH -o $RUNNER_TEMP/pp.plist
+          PP_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" $RUNNER_TEMP/pp.plist)
+          PP_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" $RUNNER_TEMP/pp.plist)
+
+          # Install it where Xcode looks for profiles, keyed by UUID
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision
+
+          echo "Installed provisioning profile '$PP_NAME' ($PP_UUID)"
+
+          # Expose to later steps
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
+          echo "PP_NAME=$PP_NAME" >> $GITHUB_ENV
+
       - name: Install App Store Connect API Key
         env:
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
         run: |
-          # altool/xcodebuild look for the key here automatically
+          # altool looks for the key here automatically
           mkdir -p ~/private_keys
           echo -n "$APP_STORE_CONNECT_API_KEY" | base64 --decode -o ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8
 
       - name: Generate ExportOptions.plist
         run: |
-          cat > $RUNNER_TEMP/ExportOptions.plist <<'PLIST'
+          # Unquoted heredoc so ${PP_UUID} / ${TEAM_ID} expand
+          cat > $RUNNER_TEMP/ExportOptions.plist <<PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
               <key>method</key>
-              <string>app-store</string>
+              <string>app-store-connect</string>
               <key>teamID</key>
-              <string>45GZ5C9N64</string>
+              <string>${TEAM_ID}</string>
               <key>signingStyle</key>
-              <string>automatic</string>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>de.cyface.app</key>
+                  <string>${PP_NAME}</string>
+              </dict>
               <key>uploadSymbols</key>
               <true/>
               <key>destination</key>
@@ -108,35 +142,26 @@ jobs:
           </dict>
           </plist>
           PLIST
+          echo "Using provisioning profile: ${PP_NAME}"
 
       - name: Build Archive
-        env:
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -scheme "$SCHEME" \
             -archivePath $RUNNER_TEMP/cyfaceapp.xcarchive \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8 \
-            -authenticationKeyID $APP_STORE_CONNECT_KEY_ID \
-            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
-            -allowProvisioningUpdates \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=$TEAM_ID \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PP_NAME" \
             clean archive
 
       - name: Export IPA
-        env:
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
         run: |
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/cyfaceapp.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/build \
-            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8 \
-            -authenticationKeyID $APP_STORE_CONNECT_KEY_ID \
-            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
-            -allowProvisioningUpdates
+            -exportPath $RUNNER_TEMP/build
 
       - name: Upload to App Store Connect
         env:
@@ -160,8 +185,9 @@ jobs:
           path: ${{ runner.temp }}/build/*.ipa
           retention-days: 7
 
-      - name: Clean up keychain
+      - name: Clean up keychain and provisioning profile
         if: always()
         run: |
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/$PP_UUID.mobileprovision || true
           rm -rf ~/private_keys || true
