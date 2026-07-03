@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Configuration</key>
+	<string>${CONFIGURATION}</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Please enable motion updates for detection of street quality</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Location updates are required to locate your measured ways!</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location updates are required to locate your measured ways!</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Location updates are required to locate your measured ways!</string>
+	<key>CFBundleGetInfoString</key>
+	<string></string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>de.cyface.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>de.cyface.app</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>location</string>
+	</array>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+</dict>
+</plist>
