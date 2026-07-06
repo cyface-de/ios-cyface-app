@@ -31,8 +31,12 @@ jobs:
 
       - name: Run Unit Tests
         run: |
+          # Simulator names change across runner images, so select the first
+          # available iPhone simulator instead of pinning a specific model.
+          UDID=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
+          echo "Using simulator $UDID"
           xcodebuild -scheme "Cyface Development" \
-            -destination "platform=iOS Simulator,name=iPhone SE (3rd generation)" \
+            -destination "id=$UDID" \
             -skip-testing:cyfaceappUITests \
             test
 
