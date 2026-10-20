@@ -3,7 +3,9 @@ name: Deploy App
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*.*.*" ]        # e.g. v1.2.3 triggers a signed release + ASC upload
+    # GitHub filter pattern, not a reg-ex: `+` means one or more of the previous character, `*` means any text.
+    # For example, v1.2.3 triggers a signed release + ASC upload.
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+*' ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:          # manual "Run workflow" button
@@ -18,16 +20,30 @@ on:
           - Cyface Staging
           - Cyface Development
 
+# Explicit workflow permissions (as little as required)
+permissions:
+  contents: read
+
+# A new commit on a pull request stops the run of the previous commit
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ---------------------------------------------------------------------------
-  # Runs on every push/PR to main. No secrets required, so PRs from forks pass.
+  # Runs on every push/PR to main. No secrets required.
   # ---------------------------------------------------------------------------
   test:
     name: Test
+    # Only for pushes, manual runs and PRs from this repo (not from forks)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: macos-26
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          # Do not keep the token on the runner after the checkout
+          persist-credentials: false
 
       - name: Run Unit Tests
         run: |
@@ -57,7 +73,10 @@ jobs:
       TEAM_ID: '45GZ5C9N64'
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          # Do not keep the token on the runner after the checkout
+          persist-credentials: false
 
       - name: Install the Apple Distribution Certificate
         env:
@@ -197,7 +216,7 @@ jobs:
 
       - name: Upload IPA as build artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app
           path: ${{ runner.temp }}/build/*.ipa
