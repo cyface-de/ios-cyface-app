@@ -46,10 +46,21 @@ final class cyfaceappUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Impressum"].exists)
         XCTAssertTrue(app.buttons["Datenschutzerklärung"].exists)
 
-        let screenshot = XCTAttachment(screenshot: app.screenshot())
-        screenshot.name = "Legal Information"
-        screenshot.lifetime = .keepAlways
-        add(screenshot)
+        let listScreenshot = XCTAttachment(screenshot: app.screenshot())
+        listScreenshot.name = "Legal Information"
+        listScreenshot.lifetime = .keepAlways
+        add(listScreenshot)
+
+        // The imprint must open inside the app, not in the Safari app.
+        app.buttons["Impressum"].tap()
+        sleep(10)
+        XCTAssertEqual(app.state, .runningForeground)
+        XCTAssertFalse(app.navigationBars["Rechtliches"].isHittable)
+
+        let imprintScreenshot = XCTAttachment(screenshot: app.screenshot())
+        imprintScreenshot.name = "Imprint"
+        imprintScreenshot.lifetime = .keepAlways
+        add(imprintScreenshot)
     }
 
     @MainActor

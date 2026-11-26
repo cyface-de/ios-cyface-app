@@ -18,6 +18,7 @@
  */
 
 import SwiftUI
+import SafariServices
 
 /**
  The legal documents of Cyface GmbH, which must be reachable from within the app.
@@ -78,16 +79,42 @@ enum LegalDocument: CaseIterable, Identifiable {
  A view listing links to all the ``LegalDocument``s, like the imprint and the privacy policy.
 
  It is reachable from the login screen as well as from the main screen, so users can access the documents before and after registering.
+ The documents open in an in-app Safari view, so the user does not leave the app.
  */
 struct LegalInformationView: View {
+    /// The document currently shown in the in-app Safari view, or `nil` if none is shown.
+    @State private var shownDocument: LegalDocument?
+
     var body: some View {
         List(LegalDocument.allCases) { document in
-            Link(destination: document.url) {
+            Button {
+                shownDocument = document
+            } label: {
                 Label(document.title, systemImage: document.systemImage)
             }
         }
         .navigationTitle("Legal Information")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $shownDocument) { document in
+            SafariView(url: document.url)
+                .ignoresSafeArea()
+        }
+    }
+}
+
+/**
+ Shows a web page inside the app, using an `SFSafariViewController`.
+ */
+struct SafariView: UIViewControllerRepresentable {
+    /// The web page to show.
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {
+        // Nothing to do here, since the URL of an `SFSafariViewController` cannot change after creation.
     }
 }
 
