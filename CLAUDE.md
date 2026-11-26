@@ -69,4 +69,4 @@ OAuth 2.0 via `OAuthAuthenticator` from the DataCapturing SDK, using the AppAuth
 - Test `CurrentMeasurementViewModel` by injecting a `PassthroughSubject<Message, Never>` via a mock `Measurement`
 
 ### CI/CD
-GitHub Actions (`.github/workflows/swift.yml`) triggers on push/PR to `main`, runs tests on a macOS-15 runner with iPhone SE 3rd gen simulator. IPA export is disabled in CI; App Store builds are done locally.
+GitHub Actions (`.github/workflows/swift.yml`) runs the unit tests on every push/PR to `main` (macOS 26 runner, first available iPhone simulator; UI tests are skipped). Pushing a version tag (`v1.2.3`) or a manual dispatch additionally archives, signs and uploads the build to App Store Connect, using the GitHub run number as build number. Submitting the uploaded build for App Review is still done manually in App Store Connect.

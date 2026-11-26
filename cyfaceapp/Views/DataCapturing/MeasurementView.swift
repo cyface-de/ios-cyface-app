@@ -107,6 +107,10 @@ struct MeasurementView: View {
                         Image(systemName: "power.circle")
                     }
                 }
+
+                ToolbarItem(placement: .primaryAction) {
+                    LegalInformationButton()
+                }
             }
             .frame(maxWidth: .infinity)
             .alert("Error", isPresented: $viewModel.showError, actions: {
