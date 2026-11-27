@@ -94,6 +94,10 @@ struct MeasurementView: View {
             }
             .frame(maxWidth: .infinity)
         }
+            // This screen has no text input, so it never needs to make room for the keyboard.
+            // After a login, in which the user typed on the login page, SwiftUI sometimes still reserves the space of the keyboard. Without this, the controls then sit in the middle of the screen (CY-6967).
+            // Remove this, if a text field is ever added to this screen.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarBackButtonHidden(true)
             .navigationTitle("Measurements")
             .navigationBarTitleDisplayMode(.inline)
