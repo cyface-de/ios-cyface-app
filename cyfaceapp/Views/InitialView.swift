@@ -37,7 +37,8 @@ struct InitialView: View {
             } else if viewModel.isAuthenticated {
                 MeasurementView(
                     viewModel: ProductionMeasurementViewModel(
-                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate
+                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate,
+                        dependencies: viewModel.dependencies
                     ),
                     isLoggedIn: $viewModel.isAuthenticated
                 )

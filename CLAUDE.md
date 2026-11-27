@@ -67,6 +67,9 @@ OAuth 2.0 via `OAuthAuthenticator` from the DataCapturing SDK, using the AppAuth
 - Unit tests use the **Swift Testing** framework (`@Test`, `#expect`)
 - UI tests use **XCTest**
 - Test `CurrentMeasurementViewModel` by injecting a `PassthroughSubject<Message, Never>` via a mock `Measurement`
+- UI tests launch the app with `XCUIApplication.launchCyface(loggedIn:)` (`cyfaceappUITests/Support/`). It passes `-UITest`, which makes `AppDependencies.fromLaunchArguments()` (Debug builds only) use a fake login (`UITestAuthenticator`), an empty in-memory database and no upload. So UI tests reach every screen without a server. `-UITestLoggedIn NO` starts on the login screen.
+- UI tests find elements through screen objects (`cyfaceappUITests/Support/Screens.swift`) and accessibility identifiers (`de.cyface.app.…`). Add an identifier and extend the screen object for every new control a test needs.
+- Run the UI tests without parallel testing (`-parallel-testing-enabled NO`) on a booted simulator: on a cold simulator the first launch blocks for minutes, since `ProductionMeasurementViewModel` reads the location authorization status on the main thread.
 
 ### CI/CD
-GitHub Actions (`.github/workflows/swift.yml`) runs the unit tests on every push/PR to `main` (macOS 26 runner, first available iPhone simulator; UI tests are skipped). Pushing a version tag (`v1.2.3`) or a manual dispatch additionally archives, signs and uploads the build to App Store Connect, using the GitHub run number as build number. Submitting the uploaded build for App Review is still done manually in App Store Connect.
+GitHub Actions (`.github/workflows/swift.yml`) runs the unit tests (job `test`) and the UI tests without the launch performance tests (job `ui-test`) on every push/PR to `main` (macOS 26 runner, first available iPhone simulator). Pushing a version tag (`v1.2.3`) or a manual dispatch additionally archives, signs and uploads the build to App Store Connect, using the GitHub run number as build number. Submitting the uploaded build for App Review is still done manually in App Store Connect.

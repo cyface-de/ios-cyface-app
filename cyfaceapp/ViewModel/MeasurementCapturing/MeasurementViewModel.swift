@@ -91,14 +91,20 @@ protocol MeasurementViewModel {
     private var synchronizationMessagesProcessingHandle: AnyCancellable? = nil
     private var uploadStatusForwardingHandle: AnyCancellable? = nil
     private var config: Config?
+    /// Whether finished measurements are uploaded to the server. UI tests switch this off.
+    private let synchronizationEnabled: Bool
 
     // MARK: - Initializers
-    init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
+    init(
+        backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate,
+        dependencies: AppDependencies = .production
+    ) {
+        synchronizationEnabled = dependencies.synchronizationEnabled
 
         modalitySelectorVM = ProductionModalitySelectorViewModel()
         do {
             // Persistence Properties
-            let coreDataStack = try CoreDataStack()
+            let coreDataStack = try CoreDataStack(storeType: dependencies.storeType)
             self.persistenceLayer = PersistenceLayer(coreDataStack)
             let sensorValueFileFactory = try DefaultSensorValueFileFactory()
             self.coreDataStack = coreDataStack
@@ -106,13 +112,7 @@ protocol MeasurementViewModel {
 
             // Data Upload Properties
             let config = try Config.load()
-            let authenticator = OAuthAuthenticator(
-                issuer: try config.getIssuerUri(),
-                redirectUri: try config.getRedirectUri(),
-                apiEndpoint: try config.getApiEndpoint(),
-                clientId: config.clientId,
-                authStateKey: CyfaceApp.authStateKey
-            )
+            let authenticator = try dependencies.makeAuthenticator(config)
             let uploadFactory = CoreDataBackedUploadFactory(dataStoreStack: coreDataStack)
             let sessionRegistry = PersistentSessionRegistry(dataStoreStack: coreDataStack, uploadFactory: uploadFactory)
             let backgroundEventHandler = BackgroundEventHandler(
@@ -438,6 +438,9 @@ extension ProductionMeasurementViewModel: MeasurementViewModel {
     }
 
     func startSynchronization() {
+        guard synchronizationEnabled else {
+            return
+        }
         do {
             guard let config = self.config else {
                 throw CyfaceError.notInitialized

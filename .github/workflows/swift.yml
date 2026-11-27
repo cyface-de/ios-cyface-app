@@ -57,6 +57,49 @@ jobs:
             test
 
   # ---------------------------------------------------------------------------
+  # UI tests. The app runs with its UI test dependencies (launch argument
+  # -UITest): a fake login, an in-memory database and no upload, so no server
+  # is required. The launch performance tests are skipped.
+  # ---------------------------------------------------------------------------
+  ui-test:
+    name: UI Test
+    # Only for pushes, manual runs and PRs from this repo (not from forks)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-26
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          # Do not keep the token on the runner after the checkout
+          persist-credentials: false
+
+      - name: Run UI Tests
+        run: |
+          UDID=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
+          echo "Using simulator $UDID"
+          # Boot the simulator before the tests. On a cold simulator the first
+          # app launch blocks for minutes while the location service starts.
+          xcrun simctl bootstatus "$UDID" -b
+          # No parallel testing: each parallel clone is another cold simulator.
+          xcodebuild -scheme "Cyface Development" \
+            -destination "id=$UDID" \
+            -parallel-testing-enabled NO \
+            -resultBundlePath "$RUNNER_TEMP/UITests.xcresult" \
+            -only-testing:cyfaceappUITests \
+            -skip-testing:cyfaceappUITests/cyfaceappUITestsLaunchTests \
+            -skip-testing:cyfaceappUITests/cyfaceappUITests/testLaunchPerformance \
+            test
+
+      - name: Upload UI test results
+        # The result bundle contains the screenshots of the failed tests.
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-test-results
+          path: ${{ runner.temp }}/UITests.xcresult
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
   # Signed archive + upload to App Store Connect using MANUAL signing.
   # The Distribution certificate and an App Store provisioning profile are
   # provided via secrets; no cloud signing is used (the API key only needs the

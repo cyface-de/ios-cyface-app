@@ -34,33 +34,36 @@ final class cyfaceappUITests: XCTestCase {
     /// The imprint and the privacy policy must be reachable without logging in.
     @MainActor
     func testLegalInformationIsReachable() throws {
-        let app = XCUIApplication()
-        app.launchArguments += ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
-        app.launch()
+        let app = XCUIApplication.launchCyface(loggedIn: false)
+        let loginScreen = LoginScreen(app: app)
+        XCTAssertTrue(loginScreen.waitUntilShown())
 
-        let legalInformationButton = app.buttons["de.cyface.app.button.legalinformation"]
-        XCTAssertTrue(legalInformationButton.waitForExistence(timeout: 10))
-        legalInformationButton.tap()
+        loginScreen.legalInformationButton.tap()
 
-        XCTAssertTrue(app.navigationBars["Rechtliches"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Impressum"].exists)
-        XCTAssertTrue(app.buttons["Datenschutzerklärung"].exists)
-
-        let listScreenshot = XCTAttachment(screenshot: app.screenshot())
-        listScreenshot.name = "Legal Information"
-        listScreenshot.lifetime = .keepAlways
-        add(listScreenshot)
+        let legalInformation = LegalInformationScreen(app: app)
+        XCTAssertTrue(legalInformation.waitUntilShown())
+        XCTAssertTrue(legalInformation.imprintLink.exists)
+        XCTAssertTrue(legalInformation.privacyPolicyLink.exists)
+        app.attachScreenshot(named: "Legal Information", to: self)
 
         // The imprint must open inside the app, not in the Safari app.
-        app.buttons["Impressum"].tap()
+        legalInformation.imprintLink.tap()
         sleep(10)
         XCTAssertEqual(app.state, .runningForeground)
         XCTAssertFalse(app.navigationBars["Rechtliches"].isHittable)
+        app.attachScreenshot(named: "Imprint", to: self)
+    }
 
-        let imprintScreenshot = XCTAttachment(screenshot: app.screenshot())
-        imprintScreenshot.name = "Imprint"
-        imprintScreenshot.lifetime = .keepAlways
-        add(imprintScreenshot)
+    /// Logging in leads to the measurement screen. The UI test login needs no identity provider.
+    @MainActor
+    func testLogin() throws {
+        let app = XCUIApplication.launchCyface(loggedIn: false)
+        let loginScreen = LoginScreen(app: app)
+        XCTAssertTrue(loginScreen.waitUntilShown())
+
+        loginScreen.loginButton.tap()
+
+        XCTAssertTrue(MeasurementScreen(app: app).waitUntilShown())
     }
 
     @MainActor
