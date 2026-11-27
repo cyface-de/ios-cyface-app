@@ -34,12 +34,8 @@ struct Config: Decodable {
     let redirectUri: String
     /// A URL to a Cyface Data Collector used to upload data to.
     let uploadEndpoint: String
-    /// A URL to a Cyface incentives service used to provide additional value for the user.
-    let incentivesUrl: String
     /// A URL to a Cyface Data Provider. This is currently mainly used to provide user delete functionality.
     let apiEndpoint: String
-    /// Whether to enable tracing for sentry or not. This causes a big performance hit and should not happen in production.
-    let enableSentryTracing: String
 
     // MARK: - Initializers
     /// Create a new config with empty values.
@@ -48,9 +44,7 @@ struct Config: Decodable {
         self.clientId = ""
         self.redirectUri = ""
         self.uploadEndpoint = ""
-        self.incentivesUrl = ""
         self.apiEndpoint = ""
-        self.enableSentryTracing = ""
     }
 
     // MARK: - Methods
@@ -81,15 +75,6 @@ struct Config: Decodable {
         return url
     }
 
-    /// Parse the ``incentivesUrl`` as a proper ``URL`` object.
-    func getIncentivesUrl() throws -> URL {
-        guard let url = URL(string: self.incentivesUrl) else {
-            throw CyfaceError.invalidURL(url: self.incentivesUrl)
-        }
-
-        return url
-    }
-
     /// Parse the ``issuer`` as a proper ``URL`` object.
     func getApiEndpoint() throws -> URL {
         guard let url = URL(string: self.apiEndpoint) else {
@@ -97,11 +82,6 @@ struct Config: Decodable {
         }
 
         return url
-    }
-
-    func getEnableSentryTracing() throws -> Bool {
-        let ret = (enableSentryTracing as NSString).boolValue
-        return ret
     }
 
     /// Load the config or throw if the file could not be found or was no valid JSON.

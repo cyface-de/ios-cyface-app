@@ -31,6 +31,38 @@ final class cyfaceappUITests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
 
+    /// The imprint and the privacy policy must be reachable without logging in.
+    @MainActor
+    func testLegalInformationIsReachable() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-AppleLanguages", "(de)", "-AppleLocale", "de_DE"]
+        app.launch()
+
+        let legalInformationButton = app.buttons["de.cyface.app.button.legalinformation"]
+        XCTAssertTrue(legalInformationButton.waitForExistence(timeout: 10))
+        legalInformationButton.tap()
+
+        XCTAssertTrue(app.navigationBars["Rechtliches"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Impressum"].exists)
+        XCTAssertTrue(app.buttons["Datenschutzerklärung"].exists)
+
+        let listScreenshot = XCTAttachment(screenshot: app.screenshot())
+        listScreenshot.name = "Legal Information"
+        listScreenshot.lifetime = .keepAlways
+        add(listScreenshot)
+
+        // The imprint must open inside the app, not in the Safari app.
+        app.buttons["Impressum"].tap()
+        sleep(10)
+        XCTAssertEqual(app.state, .runningForeground)
+        XCTAssertFalse(app.navigationBars["Rechtliches"].isHittable)
+
+        let imprintScreenshot = XCTAttachment(screenshot: app.screenshot())
+        imprintScreenshot.name = "Imprint"
+        imprintScreenshot.lifetime = .keepAlways
+        add(imprintScreenshot)
+    }
+
     @MainActor
     func testLaunchPerformance() throws {
         if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {

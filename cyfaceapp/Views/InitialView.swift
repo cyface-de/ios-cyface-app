@@ -46,6 +46,11 @@ struct InitialView: View {
                     .onOpenURL(perform: { url in
                         viewModel.authenticator?.callback(url: url)
                     })
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            LegalInformationButton()
+                        }
+                    }
             }
         }
         .alert("Error", isPresented: $viewModel.showError, actions: {
