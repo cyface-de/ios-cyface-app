@@ -43,7 +43,7 @@ import DataCapturing
 
     init(
         backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate,
-        dependencies: AppDependencies = .production
+        dependencies: AppDependencies
     ) {
         self.backgroundUrlSessionEventDelegate = backgroundUrlSessionEventDelegate
         self.dependencies = dependencies

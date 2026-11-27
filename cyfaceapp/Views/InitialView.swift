@@ -65,7 +65,8 @@ struct InitialView: View {
 #Preview {
     InitialView(
         viewModel: InitialViewModel(
-            backgroundUrlSessionEventDelegate: MockAppDelegate()
+            backgroundUrlSessionEventDelegate: MockAppDelegate(),
+            dependencies: .production
         )
     )
         .tint(Color("Cyface-Green"))

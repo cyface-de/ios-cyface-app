@@ -97,7 +97,7 @@ protocol MeasurementViewModel {
     // MARK: - Initializers
     init(
         backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate,
-        dependencies: AppDependencies = .production
+        dependencies: AppDependencies
     ) {
         synchronizationEnabled = dependencies.synchronizationEnabled
 
