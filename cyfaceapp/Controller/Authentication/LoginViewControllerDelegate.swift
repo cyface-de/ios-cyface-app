@@ -22,6 +22,7 @@
 
  - Author: Klemens Muthmann
  */
+@MainActor
 protocol LoginViewControllerDelegate {
     /// Handle a successful login.
     func onLoggedIn()

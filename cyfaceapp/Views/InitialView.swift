@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Cyface GmbH
+ * Copyright 2025-2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -34,12 +34,9 @@ struct InitialView: View {
         NavigationStack {
             if viewModel.isInitializing {
                 SplashScreen()
-            } else if viewModel.isAuthenticated {
+            } else if viewModel.isAuthenticated, let measurementViewModel = viewModel.measurementViewModel {
                 MeasurementView(
-                    viewModel: ProductionMeasurementViewModel(
-                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate,
-                        dependencies: viewModel.dependencies
-                    ),
+                    viewModel: measurementViewModel,
                     isLoggedIn: $viewModel.isAuthenticated
                 )
             } else {

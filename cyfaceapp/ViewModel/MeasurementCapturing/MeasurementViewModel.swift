@@ -72,12 +72,8 @@ protocol MeasurementViewModel {
         manager.pausesLocationUpdatesAutomatically = false
         manager.showsBackgroundLocationIndicator = true
         manager.distanceFilter = kCLDistanceFilterNone
-
-        if manager.authorizationStatus == .denied || manager.authorizationStatus == .notDetermined || manager.authorizationStatus == .restricted {
-            manager.requestWhenInUseAuthorization()
-            manager.requestAlwaysAuthorization()
-        }
-
+        // Do not read the authorization status or ask for the authorization here. This runs on the main thread, and reading the status blocks it until the system location service answers (CY-6965).
+        // The location capturer asks for the authorization when a measurement starts.
         return manager
     })
     private var persistenceLayer: PersistenceLayer?
