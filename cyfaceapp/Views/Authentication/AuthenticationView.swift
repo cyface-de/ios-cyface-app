@@ -67,7 +67,8 @@ extension AuthenticationView: UIViewControllerRepresentable {
     AuthenticationView(
         authenticator: MockAuthenticator(),
         viewModel: InitialViewModel(
-            backgroundUrlSessionEventDelegate: MockAppDelegate()
+            backgroundUrlSessionEventDelegate: MockAppDelegate(),
+            dependencies: .production
         )
     )
 }

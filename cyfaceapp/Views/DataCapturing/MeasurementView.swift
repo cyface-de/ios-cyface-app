@@ -38,10 +38,13 @@ struct MeasurementView: View {
                     }
                 .onDelete(perform: deleteMeasurements)
             }
+            .accessibilityIdentifier("de.cyface.app.list.measurements")
 
          if viewModel.isCurrentlyCapturing || viewModel.isPaused {
              CurrentMeasurementView(viewModel: viewModel.currentMeasurementViewModel())
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("de.cyface.app.view.currentmeasurement")
             }
 
             ModalitySelectorView(modalitySelectorViewModel: viewModel.modalitySelectorVM)
@@ -58,6 +61,8 @@ struct MeasurementView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(viewModel.isCurrentlyCapturing)
+                .accessibilityLabel("Start")
+                .accessibilityIdentifier("de.cyface.app.button.start")
 
                 Button(action: {
                     viewModel.pause()
@@ -70,6 +75,8 @@ struct MeasurementView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(viewModel.isPaused || (!viewModel.isPaused && !viewModel.isCurrentlyCapturing))
+                .accessibilityLabel("Pause")
+                .accessibilityIdentifier("de.cyface.app.button.pause")
 
                 Button(action: {
                     viewModel.stop()
@@ -82,6 +89,8 @@ struct MeasurementView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .disabled(!viewModel.isCurrentlyCapturing && !viewModel.isPaused)
+                .accessibilityLabel("Stop")
+                .accessibilityIdentifier("de.cyface.app.button.stop")
             }
             .frame(maxWidth: .infinity)
         }
@@ -95,6 +104,8 @@ struct MeasurementView: View {
                     }) {
                         Image(systemName: "square.and.arrow.up")
                     }
+                    .accessibilityLabel("Upload")
+                    .accessibilityIdentifier("de.cyface.app.button.sync")
                 }
 
                 ToolbarItem(placement: .cancellationAction) {
@@ -106,6 +117,8 @@ struct MeasurementView: View {
                     }) {
                         Image(systemName: "power.circle")
                     }
+                    .accessibilityLabel("Logout")
+                    .accessibilityIdentifier("de.cyface.app.button.logout")
                 }
 
                 ToolbarItem(placement: .primaryAction) {

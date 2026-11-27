@@ -37,7 +37,8 @@ struct InitialView: View {
             } else if viewModel.isAuthenticated {
                 MeasurementView(
                     viewModel: ProductionMeasurementViewModel(
-                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate
+                        backgroundUrlSessionEventDelegate: viewModel.backgroundUrlSessionEventDelegate,
+                        dependencies: viewModel.dependencies
                     ),
                     isLoggedIn: $viewModel.isAuthenticated
                 )
@@ -64,7 +65,8 @@ struct InitialView: View {
 #Preview {
     InitialView(
         viewModel: InitialViewModel(
-            backgroundUrlSessionEventDelegate: MockAppDelegate()
+            backgroundUrlSessionEventDelegate: MockAppDelegate(),
+            dependencies: .production
         )
     )
         .tint(Color("Cyface-Green"))

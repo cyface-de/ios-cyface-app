@@ -38,21 +38,21 @@ import DataCapturing
     ///
     /// This is required to hand down to the main measurement view of the application.
     let backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate
+    /// The dependencies to the outside world, handed down to the main measurement view of the application.
+    let dependencies: AppDependencies
 
-    init(backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate) {
+    init(
+        backgroundUrlSessionEventDelegate: BackgroundURLSessionEventDelegate,
+        dependencies: AppDependencies
+    ) {
         self.backgroundUrlSessionEventDelegate = backgroundUrlSessionEventDelegate
+        self.dependencies = dependencies
         do {
             let config = try Config.load()
 
-            let oAuthAuthenticator = OAuthAuthenticator(
-                issuer: try config.getIssuerUri(),
-                redirectUri: try config.getRedirectUri(),
-                apiEndpoint: try config.getApiEndpoint(),
-                clientId: config.clientId,
-                authStateKey: CyfaceApp.authStateKey
-            )
-            self.isAuthenticated = oAuthAuthenticator.isLoggedIn
-            self.authenticator = oAuthAuthenticator
+            let authenticator = try dependencies.makeAuthenticator(config)
+            self.isAuthenticated = authenticator.isLoggedIn
+            self.authenticator = authenticator
         } catch {
             self.error = error
             self.showError = true

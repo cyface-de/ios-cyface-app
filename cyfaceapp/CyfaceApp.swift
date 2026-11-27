@@ -37,12 +37,15 @@ struct CyfaceApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     /// Key to store the current auth state, so each view may access and recreate the current auth state.
     static let authStateKey = "de.cyface.app.authstate"
+    /// The dependencies to the outside world, like the identity provider. UI tests replace them via launch arguments.
+    private let dependencies = AppDependencies.fromLaunchArguments()
     /// Display the initial user interface
     var body: some Scene {
         WindowGroup {
             InitialView(
                 viewModel: InitialViewModel(
-                    backgroundUrlSessionEventDelegate: appDelegate
+                    backgroundUrlSessionEventDelegate: appDelegate,
+                    dependencies: dependencies
                 )
             )
                 .tint(Color("Cyface-Green"))
