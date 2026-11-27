@@ -210,16 +210,18 @@ jobs:
           PLIST
           echo "Using provisioning profile: ${PP_NAME}"
 
-      # Archive with the project's automatic signing. We deliberately do NOT
-      # pass CODE_SIGN_IDENTITY / PROVISIONING_PROFILE_SPECIFIER here: as global
+      # Archive WITHOUT code signing. The project signs automatically with an
+      # Apple Development certificate, which the runner does not have, and the
+      # Developer-role API key may not create one. Passing CODE_SIGN_IDENTITY /
+      # PROVISIONING_PROFILE_SPECIFIER instead does not work either: as global
       # build settings they get applied to the SPM resource-bundle targets too,
       # which cannot carry a provisioning profile and fail the build. The real
       # App Store (distribution) signing is applied at the Export step instead,
       # where ExportOptions.plist scopes it to the de.cyface.app bundle only.
+      # The app has no entitlements file, so the export takes its entitlements
+      # from the provisioning profile.
       - name: Build Archive
         env:
-          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           # Monotonically increasing build number so App Store Connect always
           # sees a higher CFBundleVersion than the previous upload. Overrides
           # the project's CURRENT_PROJECT_VERSION only for this archive.
@@ -229,11 +231,8 @@ jobs:
             -archivePath $RUNNER_TEMP/cyfaceapp.xcarchive \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -authenticationKeyPath ~/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8 \
-            -authenticationKeyID $APP_STORE_CONNECT_KEY_ID \
-            -authenticationKeyIssuerID $APP_STORE_CONNECT_ISSUER_ID \
-            -allowProvisioningUpdates \
             CURRENT_PROJECT_VERSION=$BUILD_NUMBER \
+            CODE_SIGNING_ALLOWED=NO \
             clean archive
 
       - name: Export IPA
