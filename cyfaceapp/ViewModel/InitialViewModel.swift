@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Cyface GmbH
+ * Copyright 2025-2026 Cyface GmbH
  *
  * This file is part of the Cyface iOS App.
  *
@@ -21,9 +21,18 @@ import Foundation
 import DataCapturing
 
 /// The MVVM view model used during the initial startup of the application.
+@MainActor
 @Observable class InitialViewModel {
     /// A flag that is `false` as long as the user is not properly authenticated and `true` otherwise.
-    var isAuthenticated = false
+    var isAuthenticated = false {
+        didSet {
+            updateMeasurementViewModel()
+        }
+    }
+    /// The view model of the main measurement view. It exists only while the user is authenticated.
+    ///
+    /// It is created once per login and not by the view, since a view may evaluate its body many times and creating this view model is expensive.
+    private(set) var measurementViewModel: ProductionMeasurementViewModel?
     /// A flag telling the UI whether the current error should be shown or not.
     var showError = false
     /// The most recent error encountered during initialization or `nil` if no error occurred.
@@ -51,11 +60,25 @@ import DataCapturing
             let config = try Config.load()
 
             let authenticator = try dependencies.makeAuthenticator(config)
-            self.isAuthenticated = authenticator.isLoggedIn
             self.authenticator = authenticator
+            self.isAuthenticated = authenticator.isLoggedIn
         } catch {
             self.error = error
             self.showError = true
+        }
+        // `didSet` is not called during initialization.
+        updateMeasurementViewModel()
+    }
+
+    /// Create the view model of the main measurement view after a login and release it after a logout.
+    private func updateMeasurementViewModel() {
+        if isAuthenticated && measurementViewModel == nil {
+            measurementViewModel = ProductionMeasurementViewModel(
+                backgroundUrlSessionEventDelegate: backgroundUrlSessionEventDelegate,
+                dependencies: dependencies
+            )
+        } else if !isAuthenticated {
+            measurementViewModel = nil
         }
     }
 }
